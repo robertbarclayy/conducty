@@ -1,0 +1,164 @@
+---
+name: conducty-plan
+description: Morning batch planning for the day's AI prompts. Loads context and history, sets appetite, generates time-budgeted prompts with tracer markers and calibrated review levels. Use when the user says "plan my day", "batch plan", "create daily plan", or wants to organize prompts for the day.
+---
+
+# Conducty Plan — Daily Batch Planning
+
+Generate a structured daily plan of time-budgeted prompts organized into parallel groups with tracer markers, calibrated review levels, and prompt quality checks.
+
+## Workflow
+
+### Step 1: Load History and Improvement Notes
+
+Read `~/.conducty/history/prompt-log.md` and `~/.conducty/history/improvements.md`:
+- What was completed yesterday, what carries forward (needs-fix, partial, blocked)
+- What failure patterns were identified — avoid repeating them
+- What improvement experiments were proposed — apply them today
+
+If files don't exist, note it's a fresh start.
+
+### Step 2: Load Context
+
+Read all files in `~/.conducty/context/`:
+- Each is a project summary from `conducty-context`
+- Note tech stack, bounded contexts, recent changes, characterization data
+
+If no context files exist, ask which projects the user is working on and offer to run `conducty-context`.
+
+### Step 3: Gather Goals and Set Appetite
+
+Ask the user what they want to accomplish, then ask for the **day's appetite**:
+
+> "What are your goals for today? And how much total time do you want to spend on AI-driven work — half a day? Full day?"
+
+The appetite constrains the total plan. If goals exceed appetite, cut scope — don't overcommit. This is the most important planning decision.
+
+Accept freeform input. Reference carried-forward items from history.
+
+### Step 4: Shape Gate — Design Non-Trivial Goals
+
+For each goal, estimate complexity:
+- **Low**: Clear requirements, 1-2 files, obvious implementation
+- **Medium**: Some design decisions, 3-5 files, acceptance criteria need defining
+- **High**: Multiple subsystems, architectural decisions, unclear requirements
+
+**Medium and High goals:** Invoke `conducty-shape` before writing prompts. The shaping skill produces a design doc with appetite, acceptance criteria, no-go zones, and component breakdown.
+
+**Low goals:** Proceed directly to Step 5.
+
+The user can skip shaping for a specific goal — note it as `(design skipped by user)`.
+
+### Step 5: Generate the Plan
+
+Create `~/.conducty/plans/YYYY-MM-DD.md` using the template in [daily-plan-template.md](daily-plan-template.md).
+
+#### 5a: Map File Structure Per Goal
+
+Before writing prompts, map which files will be created or modified:
+- Design units with clear boundaries and one responsibility per file
+- Follow established patterns in existing codebases
+- Identify characterization needs for files that will be modified
+
+#### 5b: Decompose Into Prompts
+
+For each goal, select and fill a prompt template from [prompt-templates/](prompt-templates/):
+- `feature.md` — new feature with acceptance criteria and TDD
+- `bugfix.md` — bug fix with reproduction, root cause hypothesis, regression test
+- `refactor.md` — restructuring with characterization-first approach
+- `test.md` — writing or improving test coverage
+- `decision.md` — architectural decision using `conducty-dialectic`
+
+For each prompt:
+1. Write the full prompt text using the template — be specific with file paths, code, and behavior
+2. Assign a **project** and **directory**
+3. Scope the **context** — only files and directories this prompt needs
+4. Set a **time budget** — derived from the goal's appetite, divided across its prompts
+5. Add a **verification step** — a single command with expected output
+6. Estimate **complexity** (Low / Medium / High)
+7. Assign a **review level** based on complexity (see below)
+8. Note **dependencies** — does this prompt depend on another finishing first?
+9. Reference the **design doc** if one was created in Step 4
+10. Include **no-go zones** from the design to prevent scope creep
+
+#### 5c: Assign Review Levels (Calibrated Rigor)
+
+Not every prompt needs the same review overhead:
+
+| Complexity | Review Level | What Happens |
+|------------|-------------|-------------|
+| **Low** | `verify-only` | Run verification command. If it passes, done. |
+| **Medium** | `spec-review` | Run verification + dispatch spec compliance reviewer. |
+| **High** | `full-review` | Run verification + spec compliance + code quality review. |
+
+This is more efficient than blanket two-stage review for everything. Reserve ceremony for work that warrants it.
+
+#### 5d: Mark Tracers
+
+In each parallelization group, mark the first prompt as `Tracer: yes`. This prompt runs alone before the rest of the group. If it fails, the plan's assumptions for that group need revision — don't blindly execute the remaining prompts.
+
+Choose the tracer wisely: pick the prompt most likely to expose bad assumptions (touches the most shared code, tests the most uncertain part of the design, or integrates with the least-understood system).
+
+#### 5e: Prompt Quality Gate
+
+Before finalizing, check each prompt for **prompt smells** (signs it will fail):
+
+| Smell | Symptom | Fix |
+|-------|---------|-----|
+| **Vague acceptance** | "Make it work" / "Improve performance" | Add concrete criteria with numbers |
+| **Missing context** | References files not listed in Context field | Add the missing file paths |
+| **Mixed concerns** | One prompt does two unrelated things | Split into two prompts |
+| **No verification** | No command to prove success | Add a test command with expected output |
+| **Unbounded scope** | No no-go zones, open-ended "and anything else" | Add explicit boundaries |
+| **Exceeds appetite** | Time budget > what's reasonable for complexity | Simplify or split |
+| **Missing characterization** | Modifies existing code without verifying current behavior | Add characterization step |
+
+Any prompt with a smell gets fixed before the plan is finalized. A smelly prompt is a wasted execution slot.
+
+### Step 6: Group for Parallelization
+
+Organize prompts into groups:
+- **Group A**: Independent prompts that can all run in parallel
+- **Group B**: Prompts that depend on Group A completing
+- **Group C**: And so on
+
+Within each group, all prompts are independent. The first prompt in each group is the tracer.
+
+### Step 7: Hill Chart Positions
+
+For each goal, mark its starting hill position:
+- **Uphill** (figuring it out) — goal still has open design questions or uncertainty
+- **Peak** — design is solid, execution is the remaining work
+- **Downhill** (making it happen) — clear path, just needs implementation
+
+Goals that are uphill after shaping may need more design work. Goals that are downhill should execute smoothly — if they don't, the design missed something.
+
+### Step 8: Present and Refine
+
+Show the user the generated plan. Ask:
+- "Does this fit your appetite for the day?"
+- "Should I adjust any priorities, groupings, or review levels?"
+- "Any prompts to add, remove, or split?"
+
+Iterate until satisfied, then write the final version.
+
+### Step 9: Execution Handoff
+
+After the plan is finalized:
+
+- **`conducty-execute`** (recommended): Automated subagent execution with tracer-first approach and calibrated review
+- **Manual execution**: User copies prompts into separate windows
+- **Hybrid**: Use `conducty-execute` for Low/Medium, manual for High
+
+## Guidelines
+
+- **Appetite constrains everything** — if goals exceed the budget, cut scope, don't overcommit
+- **Each prompt is self-contained** — enough context to execute without follow-up questions
+- **Smaller prompts > fewer large ones** — smaller prompts have higher first-attempt success rates
+- **Scope context per prompt** — only what it needs, not the entire project
+- **Every prompt has verification** — no exceptions
+- **Tracers validate the plan** — if a tracer fails, it's a plan problem
+- **Review level matches risk** — don't waste ceremony on low-risk work
+- **No-go zones in every prompt** — prevent the most common failure mode (agent scope creep)
+- **Learn from history** — yesterday's failure patterns should visibly improve today's prompts
+- **Prompt smells get fixed before execution** — a smelly prompt is a wasted slot
