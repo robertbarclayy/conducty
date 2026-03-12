@@ -1,14 +1,20 @@
 <p align="center">
   <img src="assets/icon.png" alt="Conducty" width="128" />
+  <br />
+  <a href="https://www.conducty.ai/">conducty.ai</a>
 </p>
 
 # Conducty
 
 **Systems-Level AI Agent Orchestration**
 
-Stop context-switching. Start systems-thinking.
+Plan once. Run in parallel. Review and ship.
 
-Conducty orchestrates AI agents through a daily cycle grounded in the best engineering thinking: Shape Up's appetite-driven planning, Toyota Kata's improvement loops, tracer bullets from The Pragmatic Programmer, and calibrated rigor from Release It!. The result is a learning system that gets better each day.
+Most AI coding days still look like this: prompt, wait, get distracted, review, fix, repeat. In that loop, the limiting factor is not model capability -- it is human sequencing overhead.
+
+Conducty turns that loop into a structured daily cycle: batch-plan in the morning, run prompts in parallel, then review and ship with evidence. It moves you from working like a sequential programmer to operating as a concurrent orchestration layer for AI agents.
+
+Under the hood, it is grounded in proven engineering thinking: Shape Up's appetite-driven planning, Toyota Kata's improvement loops, tracer bullets from The Pragmatic Programmer, and calibrated rigor from Release It!. The result is a learning system that gets better each day.
 
 ## The Conducty Cycle
 
