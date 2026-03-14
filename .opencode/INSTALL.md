@@ -1,5 +1,7 @@
 # Installing Conducty for OpenCode
 
+> WIP: This platform integration is not finalized yet. Conducty is currently focused on the Cursor plugin flow, so OpenCode instructions may change and may lag behind the Cursor setup.
+
 ## Prerequisites
 
 - [OpenCode](https://opencode.ai) installed

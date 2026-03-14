@@ -5,7 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$HOME/.cursor/skills"
 STATE_DIR="$HOME/.conducty"
 
-echo "Conducty — Installing skills and creating state directories"
+echo "Conducty — Legacy manual Cursor installer"
+echo "Cursor plugin manifest: .cursor-plugin/plugin.json"
 echo ""
 
 mkdir -p "$SKILLS_DIR"

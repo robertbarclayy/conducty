@@ -1,0 +1,25 @@
+{
+  "name": "conducty",
+  "displayName": "Conducty",
+  "version": "0.1.0",
+  "description": "Systems-level AI workflow orchestration for Cursor. Batch plan, run in parallel, review and ship.",
+  "author": {
+    "name": "Rob Barclay",
+    "email": "rob.robertbarclay@gmail.com"
+  },
+  "homepage": "https://github.com/conducty/conducty",
+  "repository": "https://github.com/conducty/conducty",
+  "license": "MIT",
+  "keywords": [
+    "cursor",
+    "plugin",
+    "workflow",
+    "planning",
+    "orchestration",
+    "skills",
+    "parallel"
+  ],
+  "logo": "assets/plugin-logo.png",
+  "skills": "./skills/",
+  "rules": "./rules/"
+}

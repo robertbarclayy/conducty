@@ -1,5 +1,7 @@
 # Installing Conducty for Codex
 
+> WIP: This platform integration is not finalized yet. Conducty is currently focused on the Cursor plugin flow, so Codex instructions may change and may lag behind the Cursor setup.
+
 ## Prerequisites
 
 - Git

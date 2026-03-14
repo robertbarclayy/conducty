@@ -31,29 +31,78 @@ Shape → Plan → Trace → Execute → Verify → Improve
 5. **Verify** -- checkpoint between groups with health metrics and hill chart tracking
 6. **Improve** -- extract failure patterns, run the improvement kata, shape tomorrow's approach
 
-## Quick Start
+## Installation
+
+### Cursor (via Plugin Marketplace)
+
+After this repository is published to the Cursor marketplace, install it in Cursor Agent chat with:
+
+```text
+/add-plugin conducty
+```
+
+or search for `conducty` in the plugin marketplace.
+
+### Cursor Local Package / Publish Prep
 
 ```bash
 # Clone the repo
 git clone https://github.com/conducty/conducty.git
 cd conducty
 
-# Install skills + rules + create state directories
+# Validate the root Cursor plugin manifest and contents
+node scripts/validate-template.mjs
+```
+
+This repo uses a single-plugin Cursor layout at `.cursor-plugin/plugin.json`, pointing directly at the root `skills/`, `rules/`, and `assets/` directories.
+
+### Cursor Manual Install (Legacy)
+
+```bash
 chmod +x setup.sh
 ./setup.sh
 ```
 
-This symlinks skills into `~/.cursor/skills/`, rules into `~/.cursor/rules/`, and creates `~/.conducty/` for persistent state (plans, history, designs, context, metrics).
+This legacy path still symlinks skills into `~/.cursor/skills/`, rules into `~/.cursor/rules/`, and creates `~/.conducty/` for persistent state (plans, history, designs, context, metrics).
 
 ### Other Platforms
 
 | Platform | Install |
 |----------|---------|
-| Cursor | `./setup.sh` |
+| Cursor plugin manifest | `.cursor-plugin/plugin.json` |
+| Cursor manual install (legacy) | `./setup.sh` |
 | Claude Code | `./install-claude-code.sh` |
 | OpenCode | `./install-opencode.sh` |
 | Codex | `./install-codex.sh` |
 | GitHub Copilot | `./install-copilot.sh` |
+
+## Cursor Plugin Packaging
+
+The root `skills/`, `rules/`, and `assets/` directories are the Cursor plugin payload. Validate the plugin manifest and referenced content with:
+
+```bash
+node scripts/validate-template.mjs
+```
+
+Before publishing, make sure:
+
+- `.cursor-plugin/plugin.json` has the final public metadata
+- `assets/plugin-logo.png` is the intended marketplace logo
+- `node scripts/validate-template.mjs` passes from a clean checkout
+
+### Local Test Checklist
+
+Before submitting the plugin, do one local smoke test in Cursor:
+
+1. Run `node scripts/validate-template.mjs`
+2. Run `./setup.sh`
+3. Start a fresh Cursor session in any project
+4. Confirm Conducty rules and skills appear in Cursor settings
+5. Try prompts like `plan my day`, `shape this feature`, or `checkpoint this group`
+
+### Submit For Review
+
+When ready, submit the public repository at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish).
 
 ## Daily Workflow
 
@@ -329,13 +378,16 @@ conducty-system (philosophy, language)
 ```
 conducty/
 ├── README.md
+├── .cursor-plugin/
+│   └── plugin.json              # Cursor plugin manifest
 ├── CLAUDE.md                    # Generated — rules for Claude Code
 ├── AGENTS.md                    # Generated — rules for other platforms
 ├── assets/
 │   └── icon.png                 # Project icon
-├── setup.sh                     # Cursor installer
+├── setup.sh                     # Legacy manual Cursor installer
 ├── install-{platform}.sh        # Platform-specific installers
 ├── scripts/
+│   ├── validate-template.mjs
 │   ├── generate-claude-md.sh
 │   └── generate-agents-md.sh
 ├── skills/
@@ -381,7 +433,7 @@ Created by the install scripts, used by skills at runtime:
 
 ## Contributing
 
-Conducty is open source. Contributions welcome — especially new prompt templates, failure pattern libraries, and platform integrations.
+Conducty is open source. Contributions welcome — especially new prompt templates, failure pattern libraries, and platform integrations. If you change `skills/`, `rules/`, or plugin metadata, run `node scripts/validate-template.mjs` before opening a PR.
 
 ## License
 

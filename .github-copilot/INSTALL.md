@@ -1,5 +1,7 @@
 # Installing Conducty for GitHub Copilot
 
+> WIP: This platform integration is not finalized yet. Conducty is currently focused on the Cursor plugin flow, so GitHub Copilot instructions may change and may lag behind the Cursor setup.
+
 ## Prerequisites
 
 - GitHub Copilot with coding agent enabled
