@@ -13,7 +13,7 @@ tags:
 
 Generate a structured plan of time-budgeted prompts organized into parallel groups with tracer markers, calibrated review levels, and prompt quality checks.
 
-A plan is a unit of work, not a calendar boundary. Run a fresh plan whenever you start a new orchestration cycle — multiple plans per day are normal. Each plan note is named `Plan YYYY-MM-DD HHmm [Topic].md` and lives in the Obsidian vault.
+A plan is a unit of work, not a calendar boundary. Run a fresh plan whenever you start a new orchestration cycle — multiple plans per day are normal. Each plan note is named `Plans/Plan YYYY-MM-DD HHmm [Topic].md` and lives in the Obsidian vault.
 
 > [!important] Read [[conducty-obsidian]] first
 > Vault location, naming, frontmatter, indexes, and link conventions are defined there. Every read/write below assumes those conventions.
@@ -24,11 +24,11 @@ A plan is a unit of work, not a calendar boundary. Run a fresh plan whenever you
 
 Read these from the vault (resolve `$CONDUCTY_VAULT`, default `~/Obsidian/Conducty/`):
 
-- **Latest plan**: `Glob Plan *.md`, sort by `date` then `time` frontmatter, pick the newest. Inspect:
+- **Latest plan**: `Glob Plans/Plan *.md`, sort by `date` then `time` frontmatter, pick the newest. Inspect:
   - Carry-forward items (status: needs-fix, partial, blocked)
   - Hill chart positions
   - End-of-plan summary
-- **Latest improvement**: `Glob Improvement *.md`, pick newest — what experiments to apply now
+- **Latest improvement**: `Glob Improvements/Improvement *.md`, pick newest — what experiments to apply now
 - **`[[Failure Patterns]]`** — recurring patterns to avoid
 - **`[[Metrics]]`** — last 7-14 rows for trend data (pass rate, retries, appetite accuracy)
 
@@ -36,7 +36,7 @@ If the vault is empty, note it's a fresh start and proceed.
 
 ### Step 2: Load Context
 
-Read all `Context *.md` notes in the vault (use Glob `Context *.md`). Each is a project summary from [[conducty-context]] with bounded contexts, recent changes, characterization data.
+Read all context hub notes in the vault (use Glob `Context/**/Context *.md`). Each is a project summary from [[conducty-context]] with bounded contexts, recent changes, characterization data.
 
 If no context notes exist, ask which projects the user is working on and offer to run [[conducty-context]].
 
@@ -67,7 +67,7 @@ The user can skip shaping for a specific goal — note it as `(design skipped by
 
 Resolve current date and time. Pick a topic suffix if more than one plan is expected today (recommended for clarity even when only one plan runs).
 
-Create `Plan YYYY-MM-DD HHmm [Topic].md` in the vault. Use the [[plan-template]] (despite the name, the template is per-plan, not per-day).
+Create `Plans/Plan YYYY-MM-DD HHmm [Topic].md` in the vault. Use the [[plan-template]] (despite the name, the template is per-plan, not per-day).
 
 Frontmatter must include:
 

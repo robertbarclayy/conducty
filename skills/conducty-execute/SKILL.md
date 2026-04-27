@@ -1,6 +1,6 @@
 ---
 name: conducty-execute
-description: Dispatches Claude Code Task subagents to run prompts from a vault plan note. Tracer-first execution, time-budgeted work, calibrated review rigor. Use when the user says "execute the plan", "run group A", "dispatch", or is ready to run prompts from a `Plan YYYY-MM-DD HHmm` note in the vault.
+description: Dispatches Claude Code Task subagents to run prompts from a vault plan note. Tracer-first execution, time-budgeted work, calibrated review rigor. Use when the user says "execute the plan", "run group A", "dispatch", or is ready to run prompts from a `Plans/Plan YYYY-MM-DD HHmm` note in the vault.
 aliases:
   - conducty-execute
   - execute

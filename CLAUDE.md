@@ -47,31 +47,33 @@ Claude Code discovers Conducty skills from `~/.claude/skills/` after running `./
 
 ## Vault Layout (recap)
 
-Per-instance notes (timestamped) — get an index:
+Vault is **nested by category** — per-instance notes get a directory, per-project context lives under `Context/{Project}/`, accumulators live under `Accumulators/`. Wikilinks resolve by basename across all subfolders, so directory placement is purely organizational. See [[conducty-obsidian]] for the full layout reference.
 
-- `Plan YYYY-MM-DD HHmm [Topic].md`
-- `Design YYYY-MM-DD HHmm {Topic}.md`
-- `Improvement YYYY-MM-DD HHmm.md`
-- `Code Review YYYY-MM-DD HHmm.md`
-- `Ship Report YYYY-MM-DD HHmm.md`
+Per-instance notes (timestamped) — directory + filename pattern:
 
-Project context is a **sub-graph** — one hub plus several slices (see [[conducty-context]]):
+- `Plans/Plan YYYY-MM-DD HHmm [Topic].md`
+- `Designs/Design YYYY-MM-DD HHmm {Topic}.md`
+- `Improvements/Improvement YYYY-MM-DD HHmm.md`
+- `Code Reviews/Code Review YYYY-MM-DD HHmm.md`
+- `Ship Reports/Ship Report YYYY-MM-DD HHmm.md`
 
-- `Context {Project}.md` (hub)
-- `Context {Project} Architecture.md`, `Context {Project} Conventions.md`, `Context {Project} Invariants.md`, `Context {Project} Hotspots.md`, `Context {Project} Tests.md`, `Context {Project} Glossary.md`
-- `Context {Project} {Module}.md` (per bounded-context, optional)
-- `Context Refresh {Project} YYYY-MM-DD HHmm.md` (per refresh)
+Project context is a **sub-graph** under `Context/{Project}/` — one hub plus several slices (see [[conducty-context]]):
+
+- `Context/{Project}/Context {Project}.md` (hub)
+- `Context/{Project}/Context {Project} Architecture.md`, `... Conventions.md`, `... Invariants.md`, `... Hotspots.md`, `... Tests.md`, `... Glossary.md`
+- `Context/{Project}/Modules/Context {Project} {Module}.md` (per bounded-context, optional)
+- `Context/{Project}/Refreshes/Context Refresh {Project} YYYY-MM-DD HHmm.md` (per refresh)
 
 Indexes:
 
-- `Conducty Index` (root)
-- `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`
+- `Conducty Index.md` (vault root)
+- `Indexes/Plans Index.md`, `Indexes/Designs Index.md`, `Indexes/Context Index.md`, `Indexes/Improvements Index.md`
 
 Accumulating notes (singular files, prepend new entries):
 
-- `Failure Patterns`
-- `Metrics`
-- `Prompt Log`
+- `Accumulators/Failure Patterns.md`
+- `Accumulators/Metrics.md`
+- `Accumulators/Prompt Log.md`
 
 ## Claude Code Tooling
 
@@ -127,7 +129,7 @@ Conducty follows a per-plan cycle: **Shape → Plan → Trace → Execute → Ve
 
 All Conducty state — plans, designs, context, improvements, failure patterns, metrics, prompt logs — lives in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). Read [[conducty-obsidian]] before any state I/O.
 
-Before starting work, list the vault for the latest `Plan *.md` note (sort by `date` then `time` frontmatter). If one is active, reference it to understand the current prompt, its scoped context, time budget, and verification step.
+Before starting work, list the vault for the latest `Plans/Plan *.md` note (sort by `date` then `time` frontmatter). If one is active, reference it to understand the current prompt, its scoped context, time budget, and verification step.
 
 **Shape:** For non-trivial goals, use [[conducty-shape]] to define appetite, scope, no-go zones, and design before planning. For architectural decisions, use [[conducty-dialectic]].
 

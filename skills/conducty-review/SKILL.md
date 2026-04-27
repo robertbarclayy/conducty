@@ -17,7 +17,7 @@ Systematically review all executed prompts from the active plan, verify results 
 
 ### Step 1: Load the Plan
 
-Read the active plan note from the vault (`Plan YYYY-MM-DD HHmm [Topic].md` — see [[conducty-obsidian]]). If the user is reviewing a different plan, ask which one and resolve the wikilink.
+Read the active plan note from the vault (`Plans/Plan YYYY-MM-DD HHmm [Topic].md` — see [[conducty-obsidian]]). If the user is reviewing a different plan, ask which one and resolve the wikilink.
 
 Parse the prompt queue to identify all prompts and their current status.
 

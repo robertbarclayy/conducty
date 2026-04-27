@@ -82,7 +82,7 @@ Follow the Output Contract from the protocol:
 
 ### Step 7: Log Outcome (Optional)
 
-If a Conducty plan note is active in the vault, update the relevant prompt's status there. Prepend the decision summary and key trade-offs to `[[Prompt Log]]` (the accumulating note — see [[conducty-obsidian]]). If the decision warrants a design note, write `Design YYYY-MM-DD HHmm {Topic}.md` and link it from the plan.
+If a Conducty plan note is active in the vault, update the relevant prompt's status there. Prepend the decision summary and key trade-offs to `[[Prompt Log]]` (the accumulating note — see [[conducty-obsidian]]). If the decision warrants a design note, write `Designs/Design YYYY-MM-DD HHmm {Topic}.md` and link it from the plan.
 
 ## Guidelines
 

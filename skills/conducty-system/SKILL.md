@@ -134,7 +134,7 @@ These terms have precise meanings across all Conducty skills. Use them consisten
 | **Prompt smell** | A sign that a prompt will fail: too vague, too broad, missing context, mixed concerns, no verification |
 | **Leverage point** | The highest-impact place to fix a failure: prompt quality > plan quality > code quality |
 | **Circuit breaker** | A hard stop that prevents wasted work: time budget exceeded, 3 retries exhausted, or systemic failure detected |
-| **Improvement note** | A learning from a finished plan that changes the next plan's approach. Saved to the vault as `Improvement YYYY-MM-DD HHmm.md` |
+| **Improvement note** | A learning from a finished plan that changes the next plan's approach. Saved to the vault as `Improvements/Improvement YYYY-MM-DD HHmm.md` |
 
 ## Where Am I in the Cycle?
 

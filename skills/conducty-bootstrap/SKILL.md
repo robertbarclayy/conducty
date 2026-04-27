@@ -20,7 +20,7 @@ The fastest path from "just installed" to "first finished plan." Bootstrap is op
 
 - The user just ran `install-claude-code.sh` and is starting their first session
 - The user says "set up Conducty", "first time", "get started", "bootstrap"
-- A `Glob Plan *.md` against the vault returns zero results — auto-trigger this skill
+- A `Glob Plans/Plan *.md` against the vault returns zero results — auto-trigger this skill
 
 ## Workflow
 

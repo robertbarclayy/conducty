@@ -25,7 +25,7 @@ Do not trust self-reports. Verify independently using [[conducty-verify]] at the
 
 ### Step 1: Load the Plan
 
-Read the active plan note from the vault (`Plan YYYY-MM-DD HHmm [Topic].md` — see [[conducty-obsidian]]). Identify the just-completed group.
+Read the active plan note from the vault (`Plans/Plan YYYY-MM-DD HHmm [Topic].md` — see [[conducty-obsidian]]). Identify the just-completed group.
 
 ### Step 2: Systemic Failure Check
 

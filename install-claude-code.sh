@@ -12,6 +12,14 @@ echo ""
 
 mkdir -p "$SKILLS_DIR"
 mkdir -p "$VAULT"
+mkdir -p "$VAULT/Indexes"
+mkdir -p "$VAULT/Accumulators"
+mkdir -p "$VAULT/Plans"
+mkdir -p "$VAULT/Designs"
+mkdir -p "$VAULT/Improvements"
+mkdir -p "$VAULT/Code Reviews"
+mkdir -p "$VAULT/Ship Reports"
+mkdir -p "$VAULT/Context"
 
 # 1. Symlink skills
 for skill_dir in "$SCRIPT_DIR"/skills/conducty-*; do
@@ -32,11 +40,43 @@ for skill_dir in "$SCRIPT_DIR"/skills/conducty-*; do
 done
 
 # 2. Seed vault index notes
+# Conducty Index lives at the vault root; all other indexes live under Indexes/.
+seed_root_index() {
+    local file="$VAULT/Conducty Index.md"
+    if [ -f "$file" ]; then
+        return
+    fi
+    cat > "$file" << 'EOF'
+---
+type: index
+tags: [conducty, conducty/index, conducty/root]
+---
+
+# Conducty Index
+
+The Conducty cycle: Shape → Plan → Trace → Execute → Verify → Improve.
+
+## Indexes
+
+- [[Plans Index]]
+- [[Designs Index]]
+- [[Context Index]]
+- [[Improvements Index]]
+
+## Accumulating
+
+- [[Failure Patterns]]
+- [[Metrics]]
+- [[Prompt Log]]
+EOF
+    echo "  Created vault root index: Conducty Index.md"
+}
+
 seed_index() {
     local name="$1"
     local title="$2"
     local description="$3"
-    local file="$VAULT/$name.md"
+    local file="$VAULT/Indexes/$name.md"
     if [ -f "$file" ]; then
         return
     fi
@@ -51,24 +91,10 @@ tags: [conducty, conducty/index]
 $description
 
 EOF
-    echo "  Created vault index: $name.md"
+    echo "  Created vault index: Indexes/$name.md"
 }
 
-seed_index "Conducty Index" "Conducty Index" \
-    "The Conducty cycle: Shape → Plan → Trace → Execute → Verify → Improve.
-
-## Indexes
-
-- [[Plans Index]]
-- [[Designs Index]]
-- [[Context Index]]
-- [[Improvements Index]]
-
-## Accumulating
-
-- [[Failure Patterns]]
-- [[Metrics]]
-- [[Prompt Log]]"
+seed_root_index
 
 seed_index "Plans Index" "Plans Index" \
     "Conducty plans. Newest first."
@@ -82,13 +108,13 @@ seed_index "Context Index" "Context Index" \
 seed_index "Improvements Index" "Improvements Index" \
     "Conducty improvement kata entries. Newest first."
 
-# 3. Seed accumulating notes
+# 3. Seed accumulating notes (under Accumulators/)
 seed_accumulating() {
     local name="$1"
     local title="$2"
     local description="$3"
     local type_tag="$4"
-    local file="$VAULT/$name.md"
+    local file="$VAULT/Accumulators/$name.md"
     if [ -f "$file" ]; then
         return
     fi
@@ -103,7 +129,7 @@ tags: [conducty, conducty/$type_tag]
 $description
 
 EOF
-    echo "  Created vault accumulator: $name.md"
+    echo "  Created vault accumulator: Accumulators/$name.md"
 }
 
 seed_accumulating "Failure Patterns" "Failure Patterns" \

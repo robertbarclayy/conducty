@@ -1,6 +1,6 @@
 ---
 name: conducty-code-review
-description: Standalone post-implementation code review across a whole branch or PR. Goes beyond the in-cycle spec/quality reviewers (which check single prompts) to assess the diff holistically — security, correctness, perf, idioms, dead code, hidden coupling, test depth. Writes a `Code Review YYYY-MM-DD HHmm.md` note to the vault linked back to the plan. Use when the user says "review my changes", "review this PR", "code review", "is this branch good", or after a plan finishes but before [[conducty-ship]].
+description: Standalone post-implementation code review across a whole branch or PR. Goes beyond the in-cycle spec/quality reviewers (which check single prompts) to assess the diff holistically — security, correctness, perf, idioms, dead code, hidden coupling, test depth. Writes a `Code Reviews/Code Review YYYY-MM-DD HHmm.md` note to the vault linked back to the plan. Use when the user says "review my changes", "review this PR", "code review", "is this branch good", or after a plan finishes but before [[conducty-ship]].
 aliases:
   - conducty-code-review
   - code-review
@@ -15,7 +15,7 @@ tags:
 The in-cycle reviewers in [[conducty-execute]] (`spec-review`, `full-review`) verify each prompt against its own acceptance criteria. They do not see the branch as a unit. **conducty-code-review** does: it reads the diff between the branch and its base, looks at the cumulative change as a single artifact, and produces a holistic review note in the vault.
 
 > [!important] Read [[conducty-obsidian]] first
-> Output goes to the vault as `Code Review YYYY-MM-DD HHmm.md`, linked from the plan note that produced the changes.
+> Output goes to the vault as `Code Reviews/Code Review YYYY-MM-DD HHmm.md`, linked from the plan note that produced the changes.
 
 ## When to Use
 
@@ -108,7 +108,7 @@ If 3+ Critical findings: stop the review and recommend revising the plan or spli
 
 ### Step 5: Write the Review Note
 
-Write `Code Review YYYY-MM-DD HHmm.md` to the vault:
+Write `Code Reviews/Code Review YYYY-MM-DD HHmm.md` to the vault:
 
 ```markdown
 ---

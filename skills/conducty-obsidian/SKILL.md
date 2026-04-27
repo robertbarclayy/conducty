@@ -47,28 +47,59 @@ The vault is the **memory** of the orchestrator. Treat every note as a node in a
 
 ## Layout
 
-**Flat root.** No subfolders. Obsidian discovers notes by name — folders add friction without value at this scale.
+**Nested by category, flat-within-category.** Subfolders organize by note type and scope; basenames stay unique and descriptive so wikilinks (which resolve by basename across all subfolders) are unaffected by directory placement.
 
-**Title Case** filenames. Wikilinks resolve by basename, so the filename is the canonical title.
+**Title Case** filenames. Wikilinks resolve by basename, so the filename is the canonical title — never rely on the directory path to disambiguate a wikilink target.
 
 ```
 {vault}/
-├── Conducty Index.md              # root hub, links every index below
-├── Plans Index.md                 # links every plan note
-├── Designs Index.md               # links every design doc
-├── Context Index.md               # links every project context note
-├── Improvements Index.md          # links every improvement entry
+├── Conducty Index.md                            # root hub
 │
-├── Plan 2026-04-27 0930 Auth Cleanup.md     # per-plan notes, timestamped
-├── Plan 2026-04-27 1430 Bug Triage.md
-├── Design 2026-04-27 0930 Auth Cleanup.md
-├── Improvement 2026-04-27 1830.md
-├── Context My App.md              # per-project, one each
+├── Indexes/
+│   ├── Plans Index.md                           # links every plan note
+│   ├── Designs Index.md                         # links every design doc
+│   ├── Context Index.md                         # links every project context hub
+│   └── Improvements Index.md                    # links every improvement entry
 │
-├── Failure Patterns.md            # accumulating, append-prepend
-├── Metrics.md                     # accumulating, one row per plan run
-└── Prompt Log.md                  # accumulating, one entry per prompt outcome
+├── Accumulators/
+│   ├── Failure Patterns.md                      # accumulating, append-prepend
+│   ├── Metrics.md                               # one row per plan run
+│   └── Prompt Log.md                            # one entry per prompt outcome
+│
+├── Plans/
+│   ├── Plan 2026-04-27 0930 Auth Cleanup.md
+│   └── Plan 2026-04-27 1430 Bug Triage.md
+│
+├── Designs/
+│   └── Design 2026-04-27 0930 Auth Cleanup.md
+│
+├── Improvements/
+│   └── Improvement 2026-04-27 1830.md
+│
+├── Code Reviews/
+│   └── Code Review 2026-04-27 1900.md
+│
+├── Ship Reports/
+│   └── Ship Report 2026-04-27 1915.md
+│
+└── Context/
+    └── My App/                                  # one folder per project
+        ├── Context My App.md                    # hub
+        ├── Context My App Architecture.md
+        ├── Context My App Conventions.md
+        ├── Context My App Invariants.md
+        ├── Context My App Hotspots.md
+        ├── Context My App Tests.md
+        ├── Context My App Glossary.md
+        ├── Modules/
+        │   └── Context My App Auth.md           # per bounded-context deep note
+        └── Refreshes/
+            └── Context Refresh My App 2026-04-27 1830.md
 ```
+
+**Why nested:** flat root broke at scale — a vault with 50+ plans + multi-project context becomes a wall of files. Nesting by category makes Obsidian's file tree navigable. Wikilinks are unaffected because Obsidian resolves them by basename across the whole vault, not by path.
+
+**Why long unique basenames inside `Context/{Project}/`** (e.g. `Context My App Architecture.md`, not just `Architecture.md`): wikilinks like `[[Architecture]]` would collide across projects. Keeping `Context {Project} {Slice}` as the basename makes every wikilink unambiguous forever.
 
 Two note categories:
 
@@ -79,38 +110,42 @@ Two note categories:
 
 ### Per-instance notes
 
-| Note type | Filename pattern | Example |
-|-----------|------------------|---------|
-| Plan | `Plan YYYY-MM-DD HHmm [{Topic Title Case}].md` | `Plan 2026-04-27 0930 Auth Cleanup.md` |
-| Design | `Design YYYY-MM-DD HHmm {Topic Title Case}.md` | `Design 2026-04-27 0930 Auth Cleanup.md` |
-| Improvement | `Improvement YYYY-MM-DD HHmm.md` | `Improvement 2026-04-27 1830.md` |
-| Code review | `Code Review YYYY-MM-DD HHmm.md` | `Code Review 2026-04-27 1900.md` |
-| Ship report | `Ship Report YYYY-MM-DD HHmm.md` | `Ship Report 2026-04-27 1915.md` |
-| Index | `{Topic} Index.md` | `Plans Index.md` |
+| Note type | Directory | Filename pattern | Example |
+|-----------|-----------|------------------|---------|
+| Plan | `Plans/` | `Plan YYYY-MM-DD HHmm [{Topic Title Case}].md` | `Plans/Plan 2026-04-27 0930 Auth Cleanup.md` |
+| Design | `Designs/` | `Design YYYY-MM-DD HHmm {Topic Title Case}.md` | `Designs/Design 2026-04-27 0930 Auth Cleanup.md` |
+| Improvement | `Improvements/` | `Improvement YYYY-MM-DD HHmm.md` | `Improvements/Improvement 2026-04-27 1830.md` |
+| Code review | `Code Reviews/` | `Code Review YYYY-MM-DD HHmm.md` | `Code Reviews/Code Review 2026-04-27 1900.md` |
+| Ship report | `Ship Reports/` | `Ship Report YYYY-MM-DD HHmm.md` | `Ship Reports/Ship Report 2026-04-27 1915.md` |
+| Index | `Indexes/` | `{Topic} Index.md` | `Indexes/Plans Index.md` |
 
 ### Per-project notes (the context sub-graph — see [[conducty-context]])
 
-| Note | Filename | Purpose |
-|------|----------|---------|
-| Hub | `Context {Project}.md` | Project identity, links to slices, last-refreshed |
-| Architecture | `Context {Project} Architecture.md` | Bounded contexts, module map, Mermaid dep graph, seams |
-| Conventions | `Context {Project} Conventions.md` | Naming, style, lint/format commands |
-| Invariants | `Context {Project} Invariants.md` | Public APIs, schemas, contracts |
-| Hotspots | `Context {Project} Hotspots.md` | Frequently changed files, recent activity |
-| Tests | `Context {Project} Tests.md` | Test/typecheck/lint/vuln commands; characterization data. Read by [[conducty-ship]]. |
-| Glossary | `Context {Project} Glossary.md` | Domain terms, ubiquitous language |
-| Module deep note | `Context {Project} {Module}.md` | Optional, for non-trivial bounded contexts |
-| Refresh delta | `Context Refresh {Project} YYYY-MM-DD HHmm.md` | Diff vs prior refresh — temporal record |
+All per-project notes live under `Context/{Project}/`. Optional bounded-context deep notes go under `Context/{Project}/Modules/`. Refresh delta notes go under `Context/{Project}/Refreshes/`.
+
+| Note | Path | Purpose |
+|------|------|---------|
+| Hub | `Context/{Project}/Context {Project}.md` | Project identity, links to slices, last-refreshed |
+| Architecture | `Context/{Project}/Context {Project} Architecture.md` | Bounded contexts, module map, Mermaid dep graph, seams |
+| Conventions | `Context/{Project}/Context {Project} Conventions.md` | Naming, style, lint/format commands |
+| Invariants | `Context/{Project}/Context {Project} Invariants.md` | Public APIs, schemas, contracts |
+| Hotspots | `Context/{Project}/Context {Project} Hotspots.md` | Frequently changed files, recent activity |
+| Tests | `Context/{Project}/Context {Project} Tests.md` | Test/typecheck/lint/vuln commands; characterization data. Read by [[conducty-ship]]. |
+| Glossary | `Context/{Project}/Context {Project} Glossary.md` | Domain terms, ubiquitous language |
+| Module deep note | `Context/{Project}/Modules/Context {Project} {Module}.md` | Optional, for non-trivial bounded contexts |
+| Refresh delta | `Context/{Project}/Refreshes/Context Refresh {Project} YYYY-MM-DD HHmm.md` | Diff vs prior refresh — temporal record |
 
 **Multiple plans per day are expected** — that's why plans (and the artifacts derived from them) carry an `HHmm` timestamp. The topic suffix on plans is optional but encouraged when more than one plan runs in a day, so the filename alone tells you which plan is which.
 
 ### Accumulating notes
 
-| Note type | Filename | Behavior |
-|-----------|----------|----------|
-| Failure Patterns | `Failure Patterns.md` | Append-prepend: newest pattern at top |
-| Metrics | `Metrics.md` | Append-prepend: one row per plan run, newest at top |
-| Prompt Log | `Prompt Log.md` | Append-prepend: one entry per prompt outcome, newest at top |
+All accumulating notes live under `Accumulators/`.
+
+| Note type | Path | Behavior |
+|-----------|------|----------|
+| Failure Patterns | `Accumulators/Failure Patterns.md` | Append-prepend: newest pattern at top |
+| Metrics | `Accumulators/Metrics.md` | Append-prepend: one row per plan run, newest at top |
+| Prompt Log | `Accumulators/Prompt Log.md` | Append-prepend: one entry per prompt outcome, newest at top |
 
 Accumulating notes never get a timestamp in their filename — they hold every entry across all plan runs and serve as the cross-time learning corpus.
 
@@ -219,17 +254,20 @@ The Conducty cycle: Shape → Plan → Trace → Execute → Verify → Improve.
 
 ## Bootstrap
 
-If the vault root doesn't exist, create it before any other note write:
+If the vault root doesn't exist, create it (with the standard subdirectories) before any other note write:
 
 ```bash
 VAULT="${CONDUCTY_VAULT:-$HOME/Obsidian/Conducty}"
-mkdir -p "$VAULT"
+mkdir -p "$VAULT"/{Indexes,Accumulators,Plans,Designs,Improvements,"Code Reviews","Ship Reports",Context}
 ```
+
+`Context/{Project}/` and its `Modules/` + `Refreshes/` subfolders are created lazily by [[conducty-context]] when ingesting a project.
 
 Seed these notes if missing:
 
-- Indexes: `Conducty Index`, `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`
-- Accumulating: `Failure Patterns`, `Metrics`, `Prompt Log` (each with its frontmatter and an empty body)
+- Root: `Conducty Index.md` (vault root)
+- Indexes (under `Indexes/`): `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`
+- Accumulating (under `Accumulators/`): `Failure Patterns`, `Metrics`, `Prompt Log` (each with its frontmatter and an empty body)
 
 The installer (`install-claude-code.sh`) does this on first run. This skill creates them lazily if a write would otherwise create an orphan.
 
@@ -239,11 +277,11 @@ Plans, code reviews, and ship reports must find each other reliably. The rules:
 
 ### Active Plan Resolution
 
-The "active plan" is the most recent `Plan *.md` whose `## End-of-Plan Summary` is **not yet filled** (i.e., [[conducty-review]] hasn't closed it). Resolve by:
+The "active plan" is the most recent `Plans/Plan *.md` whose `## End-of-Plan Summary` is **not yet filled** (i.e., [[conducty-review]] hasn't closed it). Resolve by:
 
 ```bash
 # List all plans, newest first
-ls -t "$VAULT"/Plan*.md
+ls -t "$VAULT"/Plans/Plan*.md
 ```
 
 Read the newest first. If its End-of-Plan Summary is filled, walk backward until one is found that isn't, OR conclude no active plan exists. [[conducty-plan]] starting a new plan creates a fresh active plan; [[conducty-review]] closes the prior one.
@@ -260,7 +298,7 @@ Read the newest first. If its End-of-Plan Summary is filled, walk backward until
 ### Plan ↔ Ship Report
 
 [[conducty-ship]] reads:
-- The latest `Code Review *.md` note. Its `verdict` field gates the ship battery.
+- The latest `Code Reviews/Code Review *.md` note. Its `verdict` field gates the ship battery.
 - The plan(s) referenced by that code review.
 - `Context {Project} Tests` for the command set.
 
@@ -281,18 +319,21 @@ When a branch accumulates work from multiple plans before merging:
 
 ### Discovery Glob Patterns
 
-Standard globs every skill can rely on:
+Standard globs every skill can rely on. All globs are relative to the resolved `$VAULT` root.
 
 | To find | Glob |
 |---------|------|
-| Plans | `Plan *.md` |
-| Designs | `Design *.md` |
-| Improvements | `Improvement *.md` |
-| Code reviews | `Code Review *.md` |
-| Ship reports | `Ship Report *.md` |
-| Project hubs | `Context *.md` (filter out slices: name has no extra word after Project) |
-| Project slices | `Context * Architecture.md`, `Context * Conventions.md`, etc. |
-| Refresh deltas | `Context Refresh *.md` |
+| Plans | `Plans/Plan *.md` |
+| Designs | `Designs/Design *.md` |
+| Improvements | `Improvements/Improvement *.md` |
+| Code reviews | `Code Reviews/Code Review *.md` |
+| Ship reports | `Ship Reports/Ship Report *.md` |
+| Project hubs | `Context/*/Context *.md` (filter to depth-2 — the hub sits directly under each project folder) |
+| Project slices | `Context/*/Context * Architecture.md`, `Context/*/Context * Conventions.md`, etc. |
+| Module deep notes | `Context/*/Modules/Context *.md` |
+| Refresh deltas | `Context/*/Refreshes/Context Refresh *.md` |
+| Indexes | `Indexes/* Index.md` |
+| Accumulators | `Accumulators/Failure Patterns.md`, `Accumulators/Metrics.md`, `Accumulators/Prompt Log.md` |
 
 Skills doing discovery should use these patterns, not improvise.
 
@@ -300,13 +341,13 @@ Skills doing discovery should use these patterns, not improvise.
 
 When [[conducty-plan]] starts a new plan, it reads:
 
-- **Latest plan**: glob `Plan *.md`, sort by `date` then `time` frontmatter, pick newest — that's the prior plan
-- **Latest improvement**: glob `Improvement *.md`, pick newest
-- **All `Context *.md` notes** (project summaries)
-- **`Failure Patterns.md`** — the accumulating learning corpus, especially recent entries
-- **`Metrics.md`** — last 7-14 rows for trend data
+- **Latest plan**: glob `Plans/Plan *.md`, sort by `date` then `time` frontmatter, pick newest — that's the prior plan
+- **Latest improvement**: glob `Improvements/Improvement *.md`, pick newest
+- **All project hubs**: glob `Context/*/Context *.md` (the hub sits at the top of each project folder)
+- **`Accumulators/Failure Patterns.md`** — the accumulating learning corpus, especially recent entries
+- **`Accumulators/Metrics.md`** — last 7-14 rows for trend data
 
-Use Glob with patterns like `Plan *.md` against the resolved vault root. Read the resulting notes, follow their wikilinks via Read on the targets, and the orchestrator inherits the full context graph.
+Use Glob with patterns like `Plans/Plan *.md` against the resolved vault root. Read the resulting notes, follow their wikilinks via Read on the targets, and the orchestrator inherits the full context graph.
 
 ## Writing Conventions
 
@@ -325,7 +366,7 @@ Use Glob with patterns like `Plan *.md` against the resolved vault root. Read th
 4. **Use Edit, not Write** — Write would clobber prior entries. The Edit's `old_string` is the anchor (H1 + intro), the `new_string` is anchor + new entry.
 5. **Atomic per skill invocation** — within a single skill action, prepend all entries the skill is contributing as one Edit (or a sequence on the same anchor with each new entry shifting the anchor down). Don't interleave with other skills' writes inside the same action.
 
-Example anchor for `Failure Patterns.md`:
+Example anchor for `Accumulators/Failure Patterns.md`:
 
 ```markdown
 # Failure Patterns

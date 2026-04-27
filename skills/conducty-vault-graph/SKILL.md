@@ -35,8 +35,10 @@ Notes nothing links to. For each per-instance note (`Plan`, `Design`, `Improveme
 
 ```bash
 VAULT="${CONDUCTY_VAULT:-$HOME/Obsidian/Conducty}"
-for f in "$VAULT"/Plan*.md "$VAULT"/Design*.md "$VAULT"/Improvement*.md \
-         "$VAULT"/"Code Review"*.md "$VAULT"/"Ship Report"*.md; do
+for f in "$VAULT"/Plans/Plan*.md "$VAULT"/Designs/Design*.md \
+         "$VAULT"/Improvements/Improvement*.md \
+         "$VAULT"/"Code Reviews"/"Code Review"*.md \
+         "$VAULT"/"Ship Reports"/"Ship Report"*.md; do
     [ -f "$f" ] || continue
     base="$(basename "$f" .md)"
     if ! grep -rl --exclude="$base.md" "\\[\\[$base\\]\\]" "$VAULT" > /dev/null; then
@@ -52,12 +54,15 @@ Indexes are expected to link orphans. If a per-instance note isn't in its index,
 Wikilinks pointing at notes that don't exist. Extract every `[[Target]]` from every vault note, check the target file exists.
 
 ```bash
-grep -rho '\\[\\[[^]]*\\]\\]' "$VAULT" --include='*.md' | \
-  sed 's/\\[\\[//;s/\\]\\]//' | sort -u | \
+# Wikilinks resolve by basename anywhere in the vault, so search recursively.
+grep -rho '\[\[[^]]*\]\]' "$VAULT" --include='*.md' | \
+  sed 's/\[\[//;s/\]\]//' | sort -u | \
   while read -r target; do
     # Strip alias suffix: [[Note|Display]] → Note
     target="${target%%|*}"
-    [ -f "$VAULT/$target.md" ] || echo "BROKEN: [[$target]]"
+    if ! find "$VAULT" -type f -name "$target.md" -print -quit | grep -q .; then
+      echo "BROKEN: [[$target]]"
+    fi
   done
 ```
 
@@ -80,7 +85,7 @@ If the hub frontmatter has `stale_after_days: <N>`, use that instead of 14.
 A design note that no plan note links to. Either the design was abandoned (delete or archive it) or the plan that should have used it never linked back (fix the plan).
 
 ```bash
-for d in "$VAULT"/Design*.md; do
+for d in "$VAULT"/Designs/Design*.md; do
     base="$(basename "$d" .md)"
     if ! grep -rl --include='Plan*.md' "\\[\\[$base\\]\\]" "$VAULT" > /dev/null; then
         echo "ORPHAN DESIGN: $base"
@@ -90,7 +95,7 @@ done
 
 ### Audit 5: Improvement Experiments Never Evaluated
 
-Each `Improvement YYYY-MM-DD HHmm.md` proposes experiments. The next improvement note's `## Prior Experiments Evaluated` should reference them. Find improvement notes whose experiments aren't evaluated by *any* later improvement.
+Each `Improvements/Improvement YYYY-MM-DD HHmm.md` proposes experiments. The next improvement note's `## Prior Experiments Evaluated` should reference them. Find improvement notes whose experiments aren't evaluated by *any* later improvement.
 
 This is the killer signal: experiments exist as ritual but don't change behavior. If audits show this every week, the improvement kata is broken — flag it.
 
@@ -98,16 +103,16 @@ This is the killer signal: experiments exist as ritual but don't change behavior
 
 Every per-instance note should appear in its corresponding index. Check:
 
-- `Plans Index` lists every `Plan *.md`
-- `Designs Index` lists every `Design *.md`
-- `Improvements Index` lists every `Improvement *.md`
-- `Context Index` lists every `Context {Project}.md` hub (not slices)
+- `Plans Index` lists every `Plans/Plan *.md`
+- `Designs Index` lists every `Designs/Design *.md`
+- `Improvements Index` lists every `Improvements/Improvement *.md`
+- `Context Index` lists every `Context/*/Context *.md` hub (not slices)
 
 Note appearing in vault but not in index → index drift. Add the wikilink.
 
 ### Audit 7: Failure-Pattern Recurrence
 
-Read `Failure Patterns.md`. Group entries by symptom. Patterns appearing 3+ times across different plans are **systemic** — flag them prominently. They warrant a template change ([[conducty-plan]] step 5b) or a process change ([[conducty-improve]]), not another individual fix.
+Read `Accumulators/Failure Patterns.md`. Group entries by symptom. Patterns appearing 3+ times across different plans are **systemic** — flag them prominently. They warrant a template change ([[conducty-plan]] step 5b) or a process change ([[conducty-improve]]), not another individual fix.
 
 ### Audit 8: Plan-Without-Closure
 

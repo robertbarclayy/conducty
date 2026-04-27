@@ -116,7 +116,7 @@ Once the approach is chosen, present the design:
 
 ### Step 8: Save the Design Note
 
-Write the approved design to the vault as `Design YYYY-MM-DD HHmm {Topic Title Case}.md` (see [[conducty-obsidian]] for full conventions). The timestamp matches the plan that will consume the design.
+Write the approved design to the vault as `Designs/Design YYYY-MM-DD HHmm {Topic Title Case}.md` (see [[conducty-obsidian]] for full conventions). The timestamp matches the plan that will consume the design.
 
 ```markdown
 ---

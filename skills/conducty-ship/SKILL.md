@@ -1,6 +1,6 @@
 ---
 name: conducty-ship
-description: Pre-merge / pre-deploy gate. Runs the full ship-readiness battery — lint, typecheck, test suite, secrets scan, dependency-vulnerability check, [[conducty-code-review]] verdict — and writes a `Ship Report YYYY-MM-DD HHmm.md` note with a single-word verdict. Use when the user says "ship it", "is this ready", "ship gate", "pre-merge check", "ready to merge", or after [[conducty-code-review]] passes.
+description: Pre-merge / pre-deploy gate. Runs the full ship-readiness battery — lint, typecheck, test suite, secrets scan, dependency-vulnerability check, [[conducty-code-review]] verdict — and writes a `Ship Reports/Ship Report YYYY-MM-DD HHmm.md` note with a single-word verdict. Use when the user says "ship it", "is this ready", "ship gate", "pre-merge check", "ready to merge", or after [[conducty-code-review]] passes.
 aliases:
   - conducty-ship
   - ship
@@ -15,7 +15,7 @@ tags:
 [[conducty-checkpoint]] gates a parallelization group inside a plan. [[conducty-code-review]] gives a holistic human-style read of the branch. **conducty-ship** is the last gate before merge: it runs the actual mechanical checks every project must pass and produces a single ship-or-don't verdict.
 
 > [!important] Read [[conducty-obsidian]] first
-> Output goes to the vault as `Ship Report YYYY-MM-DD HHmm.md`, linked from the plan note and the code-review note.
+> Output goes to the vault as `Ship Reports/Ship Report YYYY-MM-DD HHmm.md`, linked from the plan note and the code-review note.
 
 ## When to Use
 
@@ -33,7 +33,7 @@ Six gates. **Every gate must pass for ship verdict to be `green`.** A single fai
 
 | # | Gate | What runs | Pass criterion |
 |---|------|-----------|----------------|
-| 1 | **Code review** | Read `Code Review YYYY-MM-DD HHmm.md` from the vault | Verdict `pass`, or `needs-fix` with all Important/Critical findings checked off |
+| 1 | **Code review** | Read `Code Reviews/Code Review YYYY-MM-DD HHmm.md` from the vault | Verdict `pass`, or `needs-fix` with all Important/Critical findings checked off |
 | 2 | **Lint / format** | Project's lint command (`npm run lint`, `cargo clippy`, `ruff`, etc.) | Exit 0, no warnings the project treats as errors |
 | 3 | **Type check** | Project's typechecker (`tsc --noEmit`, `mypy`, `cargo check`) | Exit 0, no errors |
 | 4 | **Test suite** | Full test suite (`npm test`, `cargo test`, `pytest`, etc.) | Exit 0, no failures, no skipped tests added in this branch |

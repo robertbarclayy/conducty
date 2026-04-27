@@ -21,7 +21,7 @@ This is the step that closes the feedback loop: Shape → Plan → Execute → V
 
 ### Question 1: What Was the Target Condition?
 
-Read the just-finished plan note from the vault (`Plan YYYY-MM-DD HHmm [Topic].md` — see [[conducty-obsidian]]):
+Read the just-finished plan note from the vault (`Plans/Plan YYYY-MM-DD HHmm [Topic].md` — see [[conducty-obsidian]]):
 - What goals were set?
 - What was the appetite?
 - What was the expected pass rate and velocity?
@@ -72,7 +72,7 @@ Examples:
 
 ## Recording Improvements
 
-Write a new note to the vault: `Improvement YYYY-MM-DD HHmm.md` (timestamp = when the kata is run, typically right after [[conducty-review]]).
+Write a new note to the vault: `Improvements/Improvement YYYY-MM-DD HHmm.md` (timestamp = when the kata is run, typically right after [[conducty-review]]).
 
 ```markdown
 ---

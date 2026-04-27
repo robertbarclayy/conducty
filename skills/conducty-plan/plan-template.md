@@ -8,7 +8,7 @@ tags:
 
 # Plan Template
 
-Template for vault notes named `Plan YYYY-MM-DD HHmm [Topic].md`. Multiple plans per day are normal — each gets its own timestamped file.
+Template for vault notes named `Plans/Plan YYYY-MM-DD HHmm [Topic].md`. Multiple plans per day are normal — each gets its own timestamped file.
 
 ## Frontmatter
 

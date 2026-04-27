@@ -55,7 +55,13 @@ Resolve the directory path to absolute. Extract project name from the basename, 
 Check the vault for an existing hub note:
 
 ```bash
-test -f "$VAULT/Context $PROJECT.md" && echo "refresh" || echo "first load"
+test -f "$VAULT/Context/$PROJECT/Context $PROJECT.md" && echo "refresh" || echo "first load"
+```
+
+If this is a first load, create the project sub-graph directories before writing any slice:
+
+```bash
+mkdir -p "$VAULT/Context/$PROJECT/Modules" "$VAULT/Context/$PROJECT/Refreshes"
 ```
 
 ### Step 2: First Load vs. Refresh
@@ -97,7 +103,7 @@ flowchart LR
     session --> db
 ```
 
-For modules with non-trivial internal complexity (>500 lines, multiple sub-responsibilities, or a public API surface other code depends on), generate a **bounded-context deep note** `Context {Project} {Module}.md` and link it from Architecture.
+For modules with non-trivial internal complexity (>500 lines, multiple sub-responsibilities, or a public API surface other code depends on), generate a **bounded-context deep note** at `Context/{Project}/Modules/Context {Project} {Module}.md` and link it from Architecture.
 
 ### Step 5: Capture Conventions
 
@@ -165,7 +171,21 @@ For each: term + 1-sentence definition + a backlink to the most relevant code pa
 
 ### Step 10: Write the Sub-Graph
 
-Write each slice with frontmatter and a `## Related` section that links the hub and peers.
+Write each slice with frontmatter and a `## Related` section that links the hub and peers. All paths below are relative to `$VAULT`. The hub and the six standard slices live directly under `Context/{Project}/`. Module deep notes live under `Context/{Project}/Modules/`. Refresh deltas live under `Context/{Project}/Refreshes/`.
+
+| Note | Full path |
+|------|-----------|
+| Hub | `Context/{Project}/Context {Project}.md` |
+| Architecture | `Context/{Project}/Context {Project} Architecture.md` |
+| Conventions | `Context/{Project}/Context {Project} Conventions.md` |
+| Invariants | `Context/{Project}/Context {Project} Invariants.md` |
+| Hotspots | `Context/{Project}/Context {Project} Hotspots.md` |
+| Tests | `Context/{Project}/Context {Project} Tests.md` |
+| Glossary | `Context/{Project}/Context {Project} Glossary.md` |
+| Module deep note | `Context/{Project}/Modules/Context {Project} {Module}.md` |
+| Refresh delta | `Context/{Project}/Refreshes/Context Refresh {Project} YYYY-MM-DD HHmm.md` |
+
+Wikilinks remain unchanged across the move — Obsidian resolves them by basename. Use `[[Context {Project} Architecture]]` etc, never path-prefixed wikilinks.
 
 #### Hub note
 
@@ -243,7 +263,7 @@ tags: [conducty, conducty/context, conducty/bounded-context]
 
 ### Step 11: Refresh Delta (Refresh-Only)
 
-When refreshing an existing project, write `Context Refresh {Project} YYYY-MM-DD HHmm.md`:
+When refreshing an existing project, write `Context/{Project}/Refreshes/Context Refresh {Project} YYYY-MM-DD HHmm.md`:
 
 ```markdown
 ---
@@ -302,7 +322,7 @@ Apply changes to slice notes (Edit, not full overwrite). Update the hub's `last_
 
 ### Step 12: Stale Detection
 
-After writing, check **all other** project hub notes in the vault. For any hub with `last_refreshed` older than {stale threshold — default 14 days, configurable per project via frontmatter `stale_after_days`}, flag it in your report:
+After writing, check **all other** project hub notes in the vault (Glob `Context/*/Context *.md`, then filter to depth-2 to skip slices). For any hub with `last_refreshed` older than {stale threshold — default 14 days, configurable per project via frontmatter `stale_after_days`}, flag it in your report:
 
 > "Stale context: `[[Context Other Project]]` last refreshed 2026-04-10 (17 days ago). Consider refresh before next plan touching it."
 

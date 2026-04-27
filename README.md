@@ -117,17 +117,20 @@ Conducty's state is **not** a flat log under `~/.conducty/`. It's an Obsidian va
 
 **Naming**: per-instance notes are timestamped — multiple plans per day are normal.
 
-| Note | Pattern | Example |
-|------|---------|---------|
-| Plan | `Plan YYYY-MM-DD HHmm [Topic].md` | `Plan 2026-04-27 0930 Auth Cleanup.md` |
-| Design | `Design YYYY-MM-DD HHmm {Topic}.md` | `Design 2026-04-27 0930 Auth Cleanup.md` |
-| Improvement | `Improvement YYYY-MM-DD HHmm.md` | `Improvement 2026-04-27 1830.md` |
-| Code review | `Code Review YYYY-MM-DD HHmm.md` | `Code Review 2026-04-27 1900.md` |
-| Ship report | `Ship Report YYYY-MM-DD HHmm.md` | `Ship Report 2026-04-27 1915.md` |
-| Context (sub-graph) | `Context {Project}.md` + `Context {Project} Architecture/Conventions/Invariants/Hotspots/Tests/Glossary.md` (+ optional module deep notes) | `Context My App.md`, `Context My App Architecture.md`, … |
-| Failure Patterns | `Failure Patterns.md` (accumulating) | — |
-| Metrics | `Metrics.md` (accumulating) | — |
-| Prompt Log | `Prompt Log.md` (accumulating) | — |
+Vault is **nested by category** — per-instance notes get a dedicated directory; per-project context lives under `Context/{Project}/`; accumulators under `Accumulators/`. Wikilinks resolve by basename across all subfolders, so directory placement is purely organizational.
+
+| Note | Path |
+|------|------|
+| Plan | `Plans/Plan YYYY-MM-DD HHmm [Topic].md` |
+| Design | `Designs/Design YYYY-MM-DD HHmm {Topic}.md` |
+| Improvement | `Improvements/Improvement YYYY-MM-DD HHmm.md` |
+| Code review | `Code Reviews/Code Review YYYY-MM-DD HHmm.md` |
+| Ship report | `Ship Reports/Ship Report YYYY-MM-DD HHmm.md` |
+| Context (sub-graph) | `Context/{Project}/Context {Project}.md` (hub) + `Context/{Project}/Context {Project} Architecture/Conventions/Invariants/Hotspots/Tests/Glossary.md` + optional `Context/{Project}/Modules/Context {Project} {Module}.md` deep notes + `Context/{Project}/Refreshes/Context Refresh {Project} YYYY-MM-DD HHmm.md` deltas |
+| Failure Patterns | `Accumulators/Failure Patterns.md` (accumulating) |
+| Metrics | `Accumulators/Metrics.md` (accumulating) |
+| Prompt Log | `Accumulators/Prompt Log.md` (accumulating) |
+| Indexes | `Conducty Index.md` (root) + `Indexes/{Plans,Designs,Context,Improvements} Index.md` |
 
 See `skills/conducty-obsidian/SKILL.md` for the complete vault contract: frontmatter, link conventions, index discipline, bootstrap.
 
@@ -260,10 +263,10 @@ This gives you one full trip through the cycle. Don't use `conducty-execute` (au
 
 ### After Several Plans: Calibrate
 
-By now `Metrics.md` has a healthy run of rows. Look at:
+By now `Accumulators/Metrics.md` has a healthy run of rows. Look at:
 
 - **First-attempt pass rate** — if it's below 70%, your prompts have smells. Focus on the quality gate in `conducty-plan` Step 5e.
-- **Most common failure pattern** — open `Failure Patterns.md`. Whatever appears most is your highest-leverage improvement.
+- **Most common failure pattern** — open `Accumulators/Failure Patterns.md`. Whatever appears most is your highest-leverage improvement.
 - **Appetite accuracy** — are you consistently over or under budget? Adjust your estimation.
 - **Review level calibration** — are verify-only prompts passing reliably? Are full-review prompts catching real issues? If not, adjust the thresholds.
 
@@ -361,30 +364,38 @@ Created by `install-claude-code.sh` at `$CONDUCTY_VAULT` (default `~/Obsidian/Co
 
 ```
 {vault}/
-├── Conducty Index.md
-├── Plans Index.md
-├── Designs Index.md
-├── Context Index.md
-├── Improvements Index.md
-├── Failure Patterns.md     # accumulating
-├── Metrics.md              # accumulating
-├── Prompt Log.md           # accumulating
+├── Conducty Index.md                       # root hub
 │
-├── Plan YYYY-MM-DD HHmm [Topic].md
-├── Design YYYY-MM-DD HHmm {Topic}.md
-├── Improvement YYYY-MM-DD HHmm.md
-├── Code Review YYYY-MM-DD HHmm.md
-├── Ship Report YYYY-MM-DD HHmm.md
+├── Indexes/
+│   ├── Plans Index.md
+│   ├── Designs Index.md
+│   ├── Context Index.md
+│   └── Improvements Index.md
 │
-├── Context {Project}.md                      # hub
-├── Context {Project} Architecture.md
-├── Context {Project} Conventions.md
-├── Context {Project} Invariants.md
-├── Context {Project} Hotspots.md
-├── Context {Project} Tests.md
-├── Context {Project} Glossary.md
-├── Context {Project} {Module}.md             # optional, per bounded context
-└── Context Refresh {Project} YYYY-MM-DD HHmm.md
+├── Accumulators/
+│   ├── Failure Patterns.md
+│   ├── Metrics.md
+│   └── Prompt Log.md
+│
+├── Plans/                                   # Plan YYYY-MM-DD HHmm [Topic].md
+├── Designs/                                 # Design YYYY-MM-DD HHmm {Topic}.md
+├── Improvements/                            # Improvement YYYY-MM-DD HHmm.md
+├── Code Reviews/                            # Code Review YYYY-MM-DD HHmm.md
+├── Ship Reports/                            # Ship Report YYYY-MM-DD HHmm.md
+│
+└── Context/
+    └── {Project}/
+        ├── Context {Project}.md             # hub
+        ├── Context {Project} Architecture.md
+        ├── Context {Project} Conventions.md
+        ├── Context {Project} Invariants.md
+        ├── Context {Project} Hotspots.md
+        ├── Context {Project} Tests.md
+        ├── Context {Project} Glossary.md
+        ├── Modules/
+        │   └── Context {Project} {Module}.md       # optional, per bounded context
+        └── Refreshes/
+            └── Context Refresh {Project} YYYY-MM-DD HHmm.md
 ```
 
 The legacy `~/.conducty/` directory is no longer used.
