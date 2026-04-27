@@ -112,6 +112,40 @@ When a subagent has been running significantly longer than the prompt's time bud
 3. If progressing but slow: let it finish, but flag the time overrun in checkpoint notes
 4. Either way: this means the complexity estimate was wrong. Note it for [[conducty-improve]] so future plans calibrate better.
 
+## Orchestrator Context Management
+
+Long plans burn the orchestrator's context window. Each subagent dispatch returns a result back into your session, plan-note reads accumulate, and verification output stacks up. Without management you run out of context mid-plan and lose conceptual integrity.
+
+The orchestrator is a stateful coordinator, but its session is *cache* — durable state lives in the vault (plan notes, checkpoint notes, `[[Prompt Log]]`). Treat `/compact` as a normal phase boundary, not a panic move.
+
+**When to `/compact`:**
+
+- **Between groups, never mid-group.** Group boundary is the safe point — all subagent dispatches for the group have returned, [[conducty-checkpoint]] has run, and the plan note records the group's state.
+- **Heuristic triggers:**
+  - 3+ groups remaining and the orchestrator session is already long (heavy tool output accumulated)
+  - Claude Code warns context is approaching the limit
+  - The just-finished group included large file reads, verbose code review output, or long verification logs
+  - The just-finished group ran at `full-review` (three subagents per prompt — implementer + spec reviewer + quality reviewer — accumulates fast)
+  - About to enter a group whose prompts will themselves return large outputs (codebase-wide refactors, multi-file generations)
+
+**Compact protocol:**
+
+1. **Before compact** — confirm durable state is written:
+   - Plan note marks the just-finished group's prompts complete with evidence
+   - Checkpoint note exists for the group
+   - `[[Prompt Log]]` has entries for each prompt in the group
+   - In-flight observations for [[conducty-improve]] are captured in the plan note's improvement-feedback section, not just in your head
+2. **Compact** — `/compact` summarizes the session
+3. **After compact** — restore cycle position before dispatching the next group:
+   - Re-read the active plan note from the vault
+   - Re-read the most recent checkpoint note
+   - Re-read the last few entries in `[[Prompt Log]]`
+   - Identify: which group is next, which prompt is its tracer, what no-go zones apply, what improvement experiments this plan is testing
+
+**Never compact mid-group.** A compact between the tracer and the rest of a group risks losing the tracer's signal — the evidence that justified proceeding. Finish the group, checkpoint, then compact.
+
+**Subagents are unaffected.** Each subagent dispatch is a fresh Task with a fresh window. Your `/compact` has no impact on already-dispatched or future subagents — they receive curated context per dispatch regardless.
+
 ## Subagent Prompt Templates
 
 - [[implementer-prompt]] — Dispatch an implementer subagent

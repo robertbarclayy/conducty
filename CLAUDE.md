@@ -32,6 +32,7 @@ Claude Code discovers Conducty skills from `~/.claude/skills/` after running `./
 | [[conducty-shape]] | shape | "shape", "design", "brainstorm" |
 | [[conducty-plan]] | plan | "plan", "batch plan", "create a plan" |
 | [[conducty-tdd]] | discipline | "TDD", "red-green-refactor" |
+| [[conducty-terse]] | discipline | "terse mode", "compress prompts", "tight prompts" |
 | [[conducty-execute]] | execute | "execute the plan", "run group A" |
 | [[conducty-verify]] | verify | before any "done" / "passed" claim |
 | [[conducty-debug]] | debug | "why did this fail", "investigate" |
