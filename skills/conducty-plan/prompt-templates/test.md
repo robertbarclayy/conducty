@@ -1,3 +1,13 @@
+---
+aliases:
+  - test
+  - test-template
+tags:
+  - conducty/template
+  - conducty/prompt-template
+  - conducty/plan
+---
+
 # Test Prompt Template
 
 Use when generating a prompt for writing or improving tests.
@@ -36,7 +46,7 @@ Use when generating a prompt for writing or improving tests.
     **Files to create/modify**:
     - {test/path/to/test_file} — {what to test}
 
-    See ~/.conducty/context/{project}.md for architecture overview.
+    See [[Context {Project Title Case}]] in the vault for architecture overview.
 
     **Before you begin**: Read the code you're testing. Understand what it does
     and what its edge cases are. If the code is untestable (too coupled, hidden
@@ -71,3 +81,8 @@ Use when generating a prompt for writing or improving tests.
 - Testability issues (DONE_WITH_CONCERNS) are valuable design feedback
 - The test cases list prevents the agent from writing only happy-path tests
 - No-go on production code changes keeps test prompts focused and safe
+
+## Related
+
+- [[conducty-plan]], [[conducty-tdd]]
+- [[feature]], [[bugfix]], [[refactor]], [[decision]] — sibling templates

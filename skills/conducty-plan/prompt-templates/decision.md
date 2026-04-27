@@ -1,3 +1,13 @@
+---
+aliases:
+  - decision
+  - decision-template
+tags:
+  - conducty/template
+  - conducty/prompt-template
+  - conducty/plan
+---
+
 # Decision Prompt Template
 
 Use when generating a prompt for architectural or design decisions.
@@ -28,7 +38,7 @@ Use when generating a prompt for architectural or design decisions.
     - {hard constraint 1}
     - {hard constraint 2}
 
-    Use `conducty-dialectic` for structured multi-perspective analysis.
+    Use [[conducty-dialectic]] for structured multi-perspective analysis.
 
     **Deliverable**: A decision document at the design doc path with:
     - Recommended option and reasoning
@@ -42,7 +52,7 @@ Use when generating a prompt for architectural or design decisions.
     - Key trade-offs
   - **Directory**: /path/to/project
   - **Context**: {relevant architecture docs, existing code}
-  - **Design**: ~/.conducty/designs/YYYY-MM-DD-{topic}.md (output location)
+  - **Design**: `[[Design YYYY-MM-DD HHmm {Topic Title Case}]]` (vault output location)
   - **Verification**: Decision document exists and addresses all evaluation criteria
   - **Expected outcome**: Written decision with clear recommendation
   - **Complexity**: Medium / High (decisions are never Low)
@@ -54,5 +64,10 @@ Use when generating a prompt for architectural or design decisions.
 
 - Decisions are never Low complexity — they always get at least spec-review
 - The evaluation criteria force structured analysis, not gut feelings
-- `conducty-dialectic` is the recommended tool for substantive architectural decisions
+- [[conducty-dialectic]] is the recommended tool for substantive architectural decisions
 - The deliverable is a written document, not a conversation — it persists for future reference
+
+## Related
+
+- [[conducty-plan]], [[conducty-dialectic]], [[conducty-shape]]
+- [[feature]], [[bugfix]], [[refactor]], [[test]] — sibling templates

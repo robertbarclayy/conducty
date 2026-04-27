@@ -1,3 +1,13 @@
+---
+aliases:
+  - bugfix
+  - bugfix-template
+tags:
+  - conducty/template
+  - conducty/prompt-template
+  - conducty/plan
+---
+
 # Bugfix Prompt Template
 
 Use when generating a prompt for bug fixes.
@@ -37,7 +47,7 @@ Use when generating a prompt for bug fixes.
     - Verify the test passes
     - Run broader test suite to check for regressions
 
-    See ~/.conducty/context/{project}.md for architecture overview.
+    See [[Context {Project Title Case}]] in the vault for architecture overview.
 
     **Before you begin**: If the reproduction steps don't reproduce the bug, or
     if the root cause hypothesis seems wrong — STOP and report back. Do not
@@ -81,3 +91,8 @@ Use when generating a prompt for bug fixes.
 - The 2-attempt escalation prevents infinite retry loops at the agent level
 - No-go zones prevent "while I'm here" improvements that introduce risk
 - Regression test must show the red-green cycle (fail → fix → pass)
+
+## Related
+
+- [[conducty-plan]], [[conducty-debug]], [[conducty-tdd]]
+- [[feature]], [[refactor]], [[test]], [[decision]] — sibling templates

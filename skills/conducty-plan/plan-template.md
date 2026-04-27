@@ -1,34 +1,63 @@
-# Daily Plan — YYYY-MM-DD
+---
+aliases:
+  - plan-template
+tags:
+  - conducty/template
+  - conducty/plan
+---
+
+# Plan Template
+
+Template for vault notes named `Plan YYYY-MM-DD HHmm [Topic].md`. Multiple plans per day are normal — each gets its own timestamped file.
+
+## Frontmatter
+
+```yaml
+---
+type: plan
+date: YYYY-MM-DD
+time: HHmm
+topic: {Topic Title Case}        # optional but encouraged
+appetite: 4h
+project: {project-name}          # if scoped to a single project
+tags: [conducty, conducty/plan]
+---
+```
+
+## Body
+
+```markdown
+# Plan YYYY-MM-DD HHmm — {Topic}
 
 ## Appetite
 
-**Total time budget**: {e.g., 4 hours}
+**Time budget**: {e.g., 4 hours}
 
 ## Goals
 
 | Goal | Appetite | Hill Position | Design |
 |------|----------|---------------|--------|
-| Goal 1 | 2h | Downhill | ~/.conducty/designs/... or N/A |
+| Goal 1 | 2h | Downhill | [[Design 2026-04-27 0930 Auth Cleanup]] |
 | Goal 2 | 1.5h | Peak | N/A |
 
 ## Carried Forward
 
-<!-- Items from yesterday's plan (status: needs-fix, partial, blocked) with lessons learned -->
+<!-- Items from prior plans (status: needs-fix, partial, blocked) with lessons learned -->
 - None
 
 ## Improvement Experiments
 
-<!-- From yesterday's conducty-improve — what we're trying differently today -->
-- None
+<!-- From [[conducty-improve]] — what we're trying differently this plan -->
+- See [[Improvement 2026-04-26 1830]]
 
 ## Context Loaded
 
-<!-- Project context files referenced -->
-- project-name (~/.conducty/context/project-name.md)
+<!-- Project context notes referenced -->
+- [[Context My App]]
 
 ## Health Metrics (Running)
 
-<!-- Updated by conducty-checkpoint after each group -->
+<!-- Updated by [[conducty-checkpoint]] after each group -->
 - **First-attempt pass rate**: — / —
 - **Total retries**: 0
 - **Blocked**: 0
@@ -44,7 +73,7 @@
   - **Prompt**: Full prompt text (includes acceptance criteria, self-review, report format, no-go zones)
   - **Directory**: /path/to/project
   - **Context**: Specific files and directories relevant to this prompt
-  - **Design**: ~/.conducty/designs/YYYY-MM-DD-topic.md (if applicable)
+  - **Design**: [[Design YYYY-MM-DD HHmm Topic]] (if applicable)
   - **No-go zones**: What is explicitly out of scope for this prompt
   - **Verification**: `command to run` → expected result
   - **Expected outcome**: What changes, what the result looks like
@@ -71,7 +100,7 @@
 
 ### Group B (depends on Group A)
 
-<!-- Run conducty-checkpoint on Group A before starting Group B -->
+<!-- Run [[conducty-checkpoint]] on Group A before starting Group B -->
 
 - [ ] **P3**: [project-name] Short description ★ TRACER
   - **Depends on**: P1
@@ -79,14 +108,14 @@
 
 ## Checkpoint Notes
 
-<!-- Filled between groups by conducty-checkpoint -->
+<!-- Filled between groups by [[conducty-checkpoint]] -->
 <!-- Includes: health metrics, hill chart updates, systemic failure analysis -->
 
 ## Review Notes
 
-<!-- Filled during the end-of-day review sweep -->
+<!-- Filled during the end-of-plan review sweep ([[conducty-review]]) -->
 
-## End-of-Day Summary
+## End-of-Plan Summary
 
 <!-- Filled after review sweep completes -->
 - **Total prompts**: 0
@@ -103,3 +132,19 @@
 <!-- Updated after review — where did each goal end up? -->
 | Goal | Start | End | Notes |
 |------|-------|-----|-------|
+
+## Post-Cycle
+
+<!-- Wikilinks added by [[conducty-code-review]] and [[conducty-ship]] when they run on this plan's branch. -->
+
+- **Code review**: (none yet — run [[conducty-code-review]] when the branch is review-ready)
+- **Ship report**: (none yet — run [[conducty-ship]] after code review passes)
+
+## Related
+
+- Index: [[Plans Index]]
+- Built from: [[Design YYYY-MM-DD HHmm Topic]], [[Context My App]]
+- Tests experiments from: [[Improvement YYYY-MM-DD HHmm]]
+- Carries forward from: [[Plan YYYY-MM-DD HHmm Prior-Topic]]
+- Accumulates into: [[Failure Patterns]], [[Metrics]], [[Prompt Log]]
+```

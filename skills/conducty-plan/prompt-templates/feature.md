@@ -1,3 +1,13 @@
+---
+aliases:
+  - feature
+  - feature-template
+tags:
+  - conducty/template
+  - conducty/prompt-template
+  - conducty/plan
+---
+
 # Feature Prompt Template
 
 Use when generating a prompt for new feature implementation.
@@ -33,7 +43,7 @@ Use when generating a prompt for new feature implementation.
     - Write a failing test FIRST for each behavior, then implement to make it pass
     - {describe what tests should cover}
 
-    See ~/.conducty/context/{project}.md for architecture overview.
+    See [[Context {Project Title Case}]] in the vault for architecture overview.
 
     **Before you begin**: If anything about the requirements, approach, or file
     structure is unclear — ask. Do not guess. It is always better to clarify
@@ -77,3 +87,9 @@ Use when generating a prompt for new feature implementation.
 - Time budget creates a natural circuit breaker — the agent stops if it's taking too long
 - Acceptance criteria must be concrete enough to verify with a command
 - The self-review includes a no-go zone check, not just completeness
+
+## Related
+
+- [[conducty-plan]] — selects this template during Step 5b
+- [[conducty-tdd]] — TDD discipline applied within the prompt
+- [[bugfix]], [[refactor]], [[test]], [[decision]] — sibling templates

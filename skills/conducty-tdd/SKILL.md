@@ -1,6 +1,12 @@
 ---
 name: conducty-tdd
-description: Use when implementing any feature or bugfix, when writing tests, or when the plan specifies TDD — applies test-driven discipline at both the orchestrator level (verification-first planning) and the implementer level (red-green-refactor)
+description: Test-driven development at orchestrator (verification-first planning) and implementer (red-green-refactor) levels. Use when implementing any feature/bugfix, when writing tests, when the plan specifies TDD, or when the user says "TDD", "red-green-refactor", "write the test first".
+aliases:
+  - conducty-tdd
+  - tdd
+tags:
+  - conducty/skill
+  - conducty/tdd
 ---
 
 # Conducty TDD — Test-Driven Development for Orchestrated Agents
@@ -11,7 +17,7 @@ TDD in Conducty operates at two levels: the **orchestrator** writes the "test" (
 
 ### Level 1: Orchestrator TDD (Plan Time)
 
-The orchestrator (you, during `conducty-plan`) writes the verification step FIRST for every prompt. This is the test. If you can't write a concrete verification command, the acceptance criteria aren't clear enough — fix them before generating the prompt.
+The orchestrator (you, during [[conducty-plan]]) writes the verification step FIRST for every prompt. This is the test. If you can't write a concrete verification command, the acceptance criteria aren't clear enough — fix them before generating the prompt.
 
 ```
 Define verification → Write prompt → Execute → Verify → Learn
@@ -20,15 +26,15 @@ Define verification → Write prompt → Execute → Verify → Learn
 This maps directly to red-green-refactor:
 - **Red**: The verification command would fail right now (feature doesn't exist yet)
 - **Green**: After execution, the verification command passes
-- **Refactor**: In `conducty-improve`, refine the prompt template based on what worked
+- **Refactor**: In [[conducty-improve]], refine the prompt template based on what worked
 
-If you can't write the verification step, you don't understand what you're building. Go back to `conducty-shape`.
+If you can't write the verification step, you don't understand what you're building. Go back to [[conducty-shape]].
 
 ### Level 2: Implementer TDD (Execution Time)
 
 The implementer subagent follows classical red-green-refactor within each prompt:
 
-1. **RED** — Write one minimal test that describes the desired behavior. Run it. Watch it fail.
+1. **RED** — Write one minimal test that describes the desired behavior. Run it (Bash). Watch it fail.
 2. **Verify RED** — Confirm it fails because the feature is missing, not because of a typo or import error.
 3. **GREEN** — Write the simplest code that makes the test pass. Nothing more.
 4. **Verify GREEN** — Run the test. Confirm it passes. Run all tests. Confirm no regressions.
@@ -37,7 +43,7 @@ The implementer subagent follows classical red-green-refactor within each prompt
 
 ### How They Connect
 
-The orchestrator's verification step is the **acceptance test**. The implementer's TDD cycle produces **unit tests**. When the implementer finishes, the orchestrator runs the verification command to confirm the acceptance test passes. Both levels must be green.
+The orchestrator's verification step is the **acceptance test**. The implementer's TDD cycle produces **unit tests**. When the implementer finishes, the orchestrator runs the verification command (via [[conducty-verify]]) to confirm the acceptance test passes. Both levels must be green.
 
 ## The Iron Law
 
@@ -63,7 +69,7 @@ At the orchestrator level: no prompt without a verification step. If the verific
 
 ## Prompt Smells
 
-Signs that a prompt will fail before you run it. Check for these during `conducty-plan` Step 5e.
+Signs that a prompt will fail before you run it. Check for these during [[conducty-plan]] Step 5e.
 
 | Smell | What It Looks Like | Why It Fails | Fix |
 |-------|-------------------|-------------|-----|
@@ -89,8 +95,8 @@ TDD applies to almost all implementation work. Genuine exceptions:
 
 ## Integration with Conducty
 
-- **`conducty-plan`** references this skill when writing prompt templates — every feature and bugfix template includes TDD steps
-- **`conducty-execute`** ensures implementer subagents follow TDD within their prompts
-- **`conducty-verify`** is the orchestrator-level "test run" — it validates the acceptance criteria
-- **`conducty-improve`** learns from test failures to improve future prompt templates
-- **Prompt smells** are checked during `conducty-plan` Step 5e before the plan is finalized
+- **[[conducty-plan]]** references this skill when writing prompt templates — every feature and bugfix template includes TDD steps
+- **[[conducty-execute]]** ensures implementer subagents follow TDD within their prompts
+- **[[conducty-verify]]** is the orchestrator-level "test run" — it validates the acceptance criteria
+- **[[conducty-improve]]** learns from test failures to improve future prompt templates
+- **Prompt smells** are checked during [[conducty-plan]] Step 5e before the plan is finalized

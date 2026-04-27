@@ -3,4 +3,4 @@
 *.swo
 *~
 node_modules/
-.cursor/
+.obsidian/

@@ -1,3 +1,12 @@
+---
+aliases:
+  - quality-reviewer-prompt
+tags:
+  - conducty/template
+  - conducty/subagent-prompt
+  - conducty/execute
+---
+
 # Code Quality Reviewer Prompt Template
 
 Dispatched only for prompts with review level `full-review`, after spec compliance passes.
@@ -9,8 +18,8 @@ Dispatched only for prompts with review level `full-review`, after spec complian
 ```
 Task tool:
   description: "Quality review P{N}"
-  model: fast
-  readonly: true
+  subagent_type: general-purpose  # needs Bash to run verification
+  model: sonnet
   prompt: |
     You are reviewing the code quality of a completed, spec-compliant
     implementation.
@@ -32,11 +41,11 @@ Task tool:
     Spec compliance is already confirmed. Your job is to confirm the work
     is well-built.
 
-    **First: run the verification command.**
+    **First: run the verification command (Bash).**
     Execute it, read the full output, confirm it matches expected results.
     If it fails, report that immediately — don't continue the review.
 
-    **Then review quality:**
+    **Then review quality (Read-only — no edits):**
 
     **Code quality:**
     - Clean and readable? Names accurate?
@@ -72,3 +81,8 @@ Task tool:
 
     If needs-fix, be specific about what to change and why.
 ```
+
+## Related
+
+- [[conducty-execute]] — invokes this template at `full-review`
+- [[implementer-prompt]], [[spec-reviewer-prompt]]

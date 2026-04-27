@@ -1,40 +1,54 @@
 ---
 name: conducty-plan
-description: Morning batch planning for the day's AI prompts. Loads context and history, sets appetite, generates time-budgeted prompts with tracer markers and calibrated review levels. Use when the user says "plan my day", "batch plan", "create daily plan", or wants to organize prompts for the day.
+description: Batch planning of AI prompts. Loads vault context (latest plan, latest improvement, project context, failure patterns, metrics), sets appetite, generates time-budgeted prompts with tracer markers and calibrated review levels. Use when the user says "plan", "plan this work", "batch plan", "create a plan", or wants to organize prompts. Multiple plans per day are expected — each plan is timestamped.
+aliases:
+  - conducty-plan
+  - plan
+tags:
+  - conducty/skill
+  - conducty/plan
 ---
 
-# Conducty Plan — Daily Batch Planning
+# Conducty Plan — Batch Planning
 
-Generate a structured daily plan of time-budgeted prompts organized into parallel groups with tracer markers, calibrated review levels, and prompt quality checks.
+Generate a structured plan of time-budgeted prompts organized into parallel groups with tracer markers, calibrated review levels, and prompt quality checks.
+
+A plan is a unit of work, not a calendar boundary. Run a fresh plan whenever you start a new orchestration cycle — multiple plans per day are normal. Each plan note is named `Plan YYYY-MM-DD HHmm [Topic].md` and lives in the Obsidian vault.
+
+> [!important] Read [[conducty-obsidian]] first
+> Vault location, naming, frontmatter, indexes, and link conventions are defined there. Every read/write below assumes those conventions.
 
 ## Workflow
 
-### Step 1: Load History and Improvement Notes
+### Step 1: Load the Past From the Vault
 
-Read `~/.conducty/history/prompt-log.md` and `~/.conducty/history/improvements.md`:
-- What was completed yesterday, what carries forward (needs-fix, partial, blocked)
-- What failure patterns were identified — avoid repeating them
-- What improvement experiments were proposed — apply them today
+Read these from the vault (resolve `$CONDUCTY_VAULT`, default `~/Obsidian/Conducty/`):
 
-If files don't exist, note it's a fresh start.
+- **Latest plan**: `Glob Plan *.md`, sort by `date` then `time` frontmatter, pick the newest. Inspect:
+  - Carry-forward items (status: needs-fix, partial, blocked)
+  - Hill chart positions
+  - End-of-plan summary
+- **Latest improvement**: `Glob Improvement *.md`, pick newest — what experiments to apply now
+- **`[[Failure Patterns]]`** — recurring patterns to avoid
+- **`[[Metrics]]`** — last 7-14 rows for trend data (pass rate, retries, appetite accuracy)
+
+If the vault is empty, note it's a fresh start and proceed.
 
 ### Step 2: Load Context
 
-Read all files in `~/.conducty/context/`:
-- Each is a project summary from `conducty-context`
-- Note tech stack, bounded contexts, recent changes, characterization data
+Read all `Context *.md` notes in the vault (use Glob `Context *.md`). Each is a project summary from [[conducty-context]] with bounded contexts, recent changes, characterization data.
 
-If no context files exist, ask which projects the user is working on and offer to run `conducty-context`.
+If no context notes exist, ask which projects the user is working on and offer to run [[conducty-context]].
 
 ### Step 3: Gather Goals and Set Appetite
 
-Ask the user what they want to accomplish, then ask for the **day's appetite**:
+Ask the user what they want to accomplish, then ask for the **plan's appetite**:
 
-> "What are your goals for today? And how much total time do you want to spend on AI-driven work — half a day? Full day?"
+> "What are your goals for this plan? And how much time should it consume — an hour? Half a day? Full day?"
 
 The appetite constrains the total plan. If goals exceed appetite, cut scope — don't overcommit. This is the most important planning decision.
 
-Accept freeform input. Reference carried-forward items from history.
+Accept freeform input. Reference carried-forward items from the prior plan.
 
 ### Step 4: Shape Gate — Design Non-Trivial Goals
 
@@ -43,7 +57,7 @@ For each goal, estimate complexity:
 - **Medium**: Some design decisions, 3-5 files, acceptance criteria need defining
 - **High**: Multiple subsystems, architectural decisions, unclear requirements
 
-**Medium and High goals:** Invoke `conducty-shape` before writing prompts. The shaping skill produces a design doc with appetite, acceptance criteria, no-go zones, and component breakdown.
+**Medium and High goals:** Invoke [[conducty-shape]] before writing prompts. The shaping skill produces a `Design YYYY-MM-DD HHmm {Topic}.md` note in the vault with appetite, acceptance criteria, no-go zones, and component breakdown.
 
 **Low goals:** Proceed directly to Step 5.
 
@@ -51,23 +65,44 @@ The user can skip shaping for a specific goal — note it as `(design skipped by
 
 ### Step 5: Generate the Plan
 
-Create `~/.conducty/plans/YYYY-MM-DD.md` using the template in [daily-plan-template.md](daily-plan-template.md).
+Resolve current date and time. Pick a topic suffix if more than one plan is expected today (recommended for clarity even when only one plan runs).
+
+Create `Plan YYYY-MM-DD HHmm [Topic].md` in the vault. Use the [[plan-template]] (despite the name, the template is per-plan, not per-day).
+
+Frontmatter must include:
+
+```yaml
+---
+type: plan
+date: YYYY-MM-DD
+time: HHmm
+topic: {topic title case}        # optional
+appetite: {e.g., 4h}
+project: {project-name}          # if scoped to one
+tags: [conducty, conducty/plan]
+---
+```
+
+Then prepend a wikilink to `[[Plans Index]]`.
 
 #### 5a: Map File Structure Per Goal
 
 Before writing prompts, map which files will be created or modified:
 - Design units with clear boundaries and one responsibility per file
-- Follow established patterns in existing codebases
+- Follow established patterns in existing codebases (use Glob/Grep to verify)
 - Identify characterization needs for files that will be modified
 
 #### 5b: Decompose Into Prompts
 
-For each goal, select and fill a prompt template from [prompt-templates/](prompt-templates/):
-- `feature.md` — new feature with acceptance criteria and TDD
-- `bugfix.md` — bug fix with reproduction, root cause hypothesis, regression test
-- `refactor.md` — restructuring with characterization-first approach
-- `test.md` — writing or improving test coverage
-- `decision.md` — architectural decision using `conducty-dialectic`
+For each goal, select and fill a prompt template from `prompt-templates/`:
+- [[feature]] — new feature with acceptance criteria and TDD
+- [[bugfix]] — bug fix with reproduction, root cause hypothesis, regression test
+- [[refactor]] — restructuring with characterization-first approach
+- [[test]] — writing or improving test coverage
+- [[decision]] — architectural decision using [[conducty-dialectic]]
+- [[security]] — auth, input validation, secrets, hardening (full-review always)
+- [[migration]] — schema/version/data migration with expand-contract steps
+- [[performance]] — latency/throughput/memory work, measurement-driven
 
 For each prompt:
 1. Write the full prompt text using the template — be specific with file paths, code, and behavior
@@ -78,7 +113,7 @@ For each prompt:
 6. Estimate **complexity** (Low / Medium / High)
 7. Assign a **review level** based on complexity (see below)
 8. Note **dependencies** — does this prompt depend on another finishing first?
-9. Reference the **design doc** if one was created in Step 4
+9. Reference the **design note** wikilink if one was created in Step 4
 10. Include **no-go zones** from the design to prevent scope creep
 
 #### 5c: Assign Review Levels (Calibrated Rigor)
@@ -133,22 +168,35 @@ For each goal, mark its starting hill position:
 
 Goals that are uphill after shaping may need more design work. Goals that are downhill should execute smoothly — if they don't, the design missed something.
 
-### Step 8: Present and Refine
+### Step 8: Wire Wikilinks
+
+In the plan note's `## Related` section, link:
+
+- `[[Plans Index]]`
+- The design notes consumed (e.g. `[[Design 2026-04-27 0930 Auth Cleanup]]`)
+- The context notes loaded (e.g. `[[Context My App]]`)
+- The improvement note whose experiments are being tested (e.g. `[[Improvement 2026-04-26 1830]]`)
+- Any prior plan whose work carries forward
+- Accumulating notes this plan will append to: `[[Failure Patterns]]`, `[[Metrics]]`, `[[Prompt Log]]`
+
+Then **prepend the new plan's wikilink to `[[Plans Index]]`** (Edit, not Write).
+
+### Step 9: Present and Refine
 
 Show the user the generated plan. Ask:
-- "Does this fit your appetite for the day?"
+- "Does this fit your appetite?"
 - "Should I adjust any priorities, groupings, or review levels?"
 - "Any prompts to add, remove, or split?"
 
-Iterate until satisfied, then write the final version.
+Iterate until satisfied, then write the final version to the vault.
 
-### Step 9: Execution Handoff
+### Step 10: Execution Handoff
 
 After the plan is finalized:
 
-- **`conducty-execute`** (recommended): Automated subagent execution with tracer-first approach and calibrated review
-- **Manual execution**: User copies prompts into separate windows
-- **Hybrid**: Use `conducty-execute` for Low/Medium, manual for High
+- **[[conducty-execute]]** (recommended): Automated subagent execution with tracer-first approach and calibrated review
+- **Manual execution**: User copies prompts into separate Claude Code sessions
+- **Hybrid**: Use [[conducty-execute]] for Low/Medium, manual for High
 
 ## Guidelines
 
@@ -160,5 +208,6 @@ After the plan is finalized:
 - **Tracers validate the plan** — if a tracer fails, it's a plan problem
 - **Review level matches risk** — don't waste ceremony on low-risk work
 - **No-go zones in every prompt** — prevent the most common failure mode (agent scope creep)
-- **Learn from history** — yesterday's failure patterns should visibly improve today's prompts
+- **Learn from the vault** — prior failure patterns and improvement experiments visibly shape this plan's prompts
 - **Prompt smells get fixed before execution** — a smelly prompt is a wasted slot
+- **Index discipline** — every new plan is prepended to `[[Plans Index]]` in the same action that creates it

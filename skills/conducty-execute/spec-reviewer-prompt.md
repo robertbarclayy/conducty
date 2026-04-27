@@ -1,3 +1,12 @@
+---
+aliases:
+  - spec-reviewer-prompt
+tags:
+  - conducty/template
+  - conducty/subagent-prompt
+  - conducty/execute
+---
+
 # Spec Compliance Reviewer Prompt Template
 
 Dispatched for prompts with review level `spec-review` or `full-review`, after the implementer completes work.
@@ -7,8 +16,8 @@ Dispatched for prompts with review level `spec-review` or `full-review`, after t
 ```
 Task tool:
   description: "Spec review P{N}"
-  model: fast
-  readonly: true
+  subagent_type: general-purpose   # use Explore subagent if available — read-only is fine
+  model: haiku                     # cheap model; this is fast pattern matching
   prompt: |
     You are verifying whether an implementation matches its specification.
 
@@ -27,7 +36,8 @@ Task tool:
     ## Your Job
 
     The implementer's report may be incomplete, inaccurate, or optimistic.
-    Verify everything by reading the actual code.
+    Verify everything by reading the actual code (Read, Grep, Glob).
+    Do NOT modify anything.
 
     **Check for:**
 
@@ -53,5 +63,10 @@ Task tool:
     - **spec-pass** — all requirements met, no-go zones respected, nothing
       extra. Brief confirmation of what you verified.
     - **spec-fail** — list specifically what's missing, extra, or violated,
-      with file:line references where possible.
+      with `path/to/file:line` references where possible.
 ```
+
+## Related
+
+- [[conducty-execute]] — invokes this template at `spec-review` and `full-review`
+- [[implementer-prompt]], [[quality-reviewer-prompt]]

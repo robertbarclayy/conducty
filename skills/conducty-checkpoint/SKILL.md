@@ -1,6 +1,12 @@
 ---
 name: conducty-checkpoint
-description: Quality gate between parallelization groups — measures health metrics, updates hill charts, detects systemic failures, and gates advancement. Use when a group finishes, the user says "checkpoint" or "verify group", or between groups in a daily plan.
+description: Quality gate between parallelization groups. Verifies every prompt at its assigned review level, computes health metrics, detects systemic failures, updates hill charts. Use when a group finishes, the user says "checkpoint" or "verify group", or between groups in a plan note.
+aliases:
+  - conducty-checkpoint
+  - checkpoint
+tags:
+  - conducty/skill
+  - conducty/checkpoint
 ---
 
 # Conducty Checkpoint — Health-Aware Group Gate
@@ -13,13 +19,13 @@ Gate between parallelization groups. Verifies every prompt using calibrated revi
 NO GROUP ADVANCEMENT WITHOUT INDEPENDENT VERIFICATION OF EVERY PROMPT
 ```
 
-Do not trust self-reports. Verify independently using `conducty-verify` at the prompt's assigned review level.
+Do not trust self-reports. Verify independently using [[conducty-verify]] at the prompt's assigned review level.
 
 ## Workflow
 
 ### Step 1: Load the Plan
 
-Read `~/.conducty/plans/YYYY-MM-DD.md`. Identify the just-completed group.
+Read the active plan note from the vault (`Plan YYYY-MM-DD HHmm [Topic].md` — see [[conducty-obsidian]]). Identify the just-completed group.
 
 ### Step 2: Systemic Failure Check
 
@@ -29,14 +35,14 @@ Before reviewing individual prompts, scan for systemic issues:
 - Do failures share common symptoms (same error, same module, same missing context)?
 - Did the tracer succeed but other prompts fail? (Suggests the tracer wasn't representative)
 
-**If 2+ prompts failed with related symptoms:** Flag as potential systemic issue. Investigate at the plan/design level (via `conducty-debug` leverage analysis) BEFORE generating individual fix prompts. Individual fixes for a systemic problem waste retry slots.
+**If 2+ prompts failed with related symptoms:** Flag as potential systemic issue. Investigate at the plan/design level (via [[conducty-debug]] leverage analysis) BEFORE generating individual fix prompts. Individual fixes for a systemic problem waste retry slots.
 
 ### Step 3: Verify Each Prompt (Calibrated)
 
 For each completed prompt, apply its assigned review level:
 
 **verify-only prompts:**
-1. Run the verification command via `conducty-verify`
+1. Run the verification command via [[conducty-verify]]
 2. Pass? → mark `completed`
 3. Fail? → mark `needs-fix`
 
@@ -53,7 +59,7 @@ For each completed prompt, apply its assigned review level:
 4. All three pass? → mark `completed`
 5. Any fails? → mark `needs-fix`, note which stage failed
 
-**For every prompt**, record the result in the evidence format from `conducty-verify`.
+**For every prompt**, record the result in the evidence format from [[conducty-verify]].
 
 ### Step 4: Compute Health Metrics
 
@@ -94,7 +100,7 @@ Update the plan's `## Hill Chart Update` section.
 
 For each prompt marked `needs-fix`:
 
-1. **Invoke `conducty-debug`** to determine the leverage point (plan / prompt / code)
+1. **Invoke [[conducty-debug]]** to determine the leverage point (plan / prompt / code)
 2. **Increment the prompt's Retries count**
 3. **If Retries < 3**, generate a fix at the appropriate leverage level:
    - Plan-level: revise the plan, don't generate a code fix
@@ -143,4 +149,4 @@ Do not proceed until the user confirms.
 - **Hill charts track progress at the goal level** — a goal that stalls uphill needs design work, not more prompts
 - **Review level from the plan** — don't over-review low-risk or under-review high-risk
 - **3-strike circuit breaker** — three failures means the fix is at the wrong leverage level
-- **Every checkpoint is learning data** — health metrics and patterns feed into `conducty-improve`
+- **Every checkpoint is learning data** — health metrics and patterns feed into [[conducty-improve]]

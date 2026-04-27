@@ -1,6 +1,12 @@
 ---
 name: conducty-verify
-description: Use when about to claim work is complete, a prompt passed, or any status is being marked as done — the evidence gate that requires running verification and reading output before making claims
+description: The evidence gate. Run the verification command via Bash, read the output, then make the claim. Use before marking ANY prompt complete, before any "done" / "passed" claim, or when the user asks to verify, confirm, or prove a result.
+aliases:
+  - conducty-verify
+  - verify
+tags:
+  - conducty/skill
+  - conducty/verify
 ---
 
 # Conducty Verify — The Evidence Gate
@@ -13,7 +19,7 @@ Before ANY completion claim, status update, or expression of satisfaction:
 
 ```
 1. IDENTIFY — What command proves this claim? (from the prompt's Verification field)
-2. RUN     — Execute the command fresh and complete
+2. RUN     — Execute the command (Bash) fresh and complete
 3. READ    — Full output, exit code, failure count
 4. JUDGE   — Does the output confirm the claim?
               YES → State the claim WITH the evidence
@@ -21,7 +27,7 @@ Before ANY completion claim, status update, or expression of satisfaction:
 5. RECORD  — Log the result for checkpoint and improvement tracking
 ```
 
-Skip any step and the claim is unsupported. "Should work" is not evidence. "The agent said it passed" is not evidence. Only output from a command you just ran is evidence.
+Skip any step and the claim is unsupported. "Should work" is not evidence. "The agent said it passed" is not evidence. Only output from a command you just ran via Bash is evidence.
 
 ## Calibrated Verification
 
@@ -40,7 +46,7 @@ CLAIM:    "P3 verified — 12/12 auth tests pass"
 
 ### spec-review (Medium complexity)
 
-Run the verification command. If it passes, dispatch the spec compliance reviewer (see `conducty-execute`). Both must pass.
+Run the verification command. If it passes, dispatch the spec compliance reviewer (see [[conducty-execute]]). Both must pass.
 
 ```
 IDENTIFY: P5 verification is `cargo test session`
@@ -64,7 +70,7 @@ CLAIM:    "P7 verified — tests pass, spec compliant, quality approved"
 
 ## Checkpoint Verification
 
-When verifying an entire group (used by `conducty-checkpoint`):
+When verifying an entire group (used by [[conducty-checkpoint]]):
 
 ```
 For EACH prompt in the group:
@@ -89,7 +95,7 @@ CLAIM: "Fix verified — original tests pass AND specific failure resolved"
 
 ## Evidence Format
 
-For consistency and machine-readability in history/metrics:
+For consistency and machine-readability in `[[Metrics]]` / `[[Prompt Log]]`:
 
 ```
 **P{N} Verification** [{timestamp}]
@@ -100,7 +106,7 @@ For consistency and machine-readability in history/metrics:
 - Review: {verify-only/spec-review/full-review} — {outcome}
 ```
 
-This format feeds into `conducty-checkpoint` health metrics and `conducty-improve` learning.
+This format feeds into [[conducty-checkpoint]] health metrics and [[conducty-improve]] learning.
 
 ## When to Apply
 

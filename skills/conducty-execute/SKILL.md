@@ -1,11 +1,17 @@
 ---
 name: conducty-execute
-description: Use when ready to execute prompts from a daily plan — dispatches subagents with tracer-first execution, time-budgeted work, and review rigor calibrated to prompt complexity
+description: Dispatches Claude Code Task subagents to run prompts from a vault plan note. Tracer-first execution, time-budgeted work, calibrated review rigor. Use when the user says "execute the plan", "run group A", "dispatch", or is ready to run prompts from a `Plan YYYY-MM-DD HHmm` note in the vault.
+aliases:
+  - conducty-execute
+  - execute
+tags:
+  - conducty/skill
+  - conducty/execute
 ---
 
 # Conducty Execute — Tracer-First Subagent Execution
 
-Execute prompts from the daily plan by dispatching fresh subagents with context curation, time budgets, and review rigor that scales with risk. The first prompt in each group runs as a tracer to validate plan assumptions before the rest execute.
+Execute prompts from the active plan note (in the Obsidian vault — see [[conducty-obsidian]]) by dispatching fresh Claude Code subagents (via the Task tool) with context curation, time budgets, and review rigor that scales with risk. The first prompt in each group runs as a tracer to validate plan assumptions before the rest execute.
 
 ## Core Concepts
 
@@ -28,10 +34,10 @@ Execute prompts from the daily plan by dispatching fresh subagents with context 
 ### Phase 1: Tracer Execution
 
 ```
-1. Read plan, extract the tracer prompt for the target group
-2. Dispatch tracer as a single implementer subagent
+1. Read the plan note from the vault, extract the tracer prompt for the target group
+2. Dispatch tracer as a single implementer subagent (Task tool)
 3. Handle the result:
-   - DONE → Run verification via conducty-verify → Pass? Proceed to Phase 2
+   - DONE → Run verification via [[conducty-verify]] → Pass? Proceed to Phase 2
    - DONE → Verification fails → STOP. This is a plan problem, not a prompt problem.
      Analyze: is the verification wrong, or is the plan's approach wrong?
    - BLOCKED/NEEDS_CONTEXT → STOP. The plan's assumptions are wrong.
@@ -45,24 +51,31 @@ The tracer is your early warning system. Respect its signal.
 
 ```
 For each remaining prompt in the group:
-  1. Dispatch implementer subagent (./implementer-prompt.md)
+  1. Dispatch implementer subagent (see [[implementer-prompt]])
   2. Handle implementer status (see below)
   3. Apply review level from the plan:
      - verify-only → Run verification. Pass? Mark complete.
-     - spec-review → Run verification + dispatch spec reviewer (./spec-reviewer-prompt.md)
-     - full-review → Run verification + spec reviewer + quality reviewer (./quality-reviewer-prompt.md)
+     - spec-review → Run verification + dispatch spec reviewer ([[spec-reviewer-prompt]])
+     - full-review → Run verification + spec reviewer + quality reviewer ([[quality-reviewer-prompt]])
   4. If review fails → implementer fixes → re-review (same level)
   5. Mark prompt complete with evidence
-After all prompts → run conducty-checkpoint for the group
+After all prompts → run [[conducty-checkpoint]] for the group
 Gate: user confirms before next group
 ```
 
 ### Dispatching Subagents
 
-**Use the prompt's Model field** from the plan:
-- `fast`: Low complexity (isolated functions, clear specs, 1-2 files)
-- `default`: Medium complexity (multi-file, integration, pattern matching)
-- `capable`: High complexity (design judgment, broad codebase understanding)
+Use Claude Code's Task tool. The default `subagent_type` is `general-purpose` (always available). If the harness exposes specialized subagents (e.g. `Explore` for read-only codebase analysis, `Plan` for architecture work), use them where their description fits — they don't replace the implementer model selection below.
+
+Choose **model** by the prompt's complexity:
+
+| Complexity | Model | Why |
+|------------|-------|-----|
+| **Low** (isolated function, clear spec, 1-2 files) | `haiku` | Fast and cheap; sufficient for narrow work |
+| **Medium** (multi-file, integration, pattern matching) | `sonnet` | Default for most implementation work |
+| **High** (design judgment, broad codebase understanding) | `opus` | Reserve for genuinely hard problems |
+
+For **read-only review subagents** (spec reviewer, quality reviewer, code-review lens subagents), use the `Explore` subagent type if available; otherwise `general-purpose`. Run them at `haiku` or `sonnet` — review is pattern matching, not generation.
 
 **Context curation checklist** — provide exactly:
 1. The full prompt text (pasted, not a file reference — subagents don't read plan files)
@@ -80,11 +93,11 @@ Gate: user confirms before next group
 
 **DONE_WITH_CONCERNS:** Read the concerns. Correctness/scope concerns → address before review. Observational concerns (file getting large, questionable existing patterns) → note for future planning, proceed to review.
 
-**NEEDS_CONTEXT:** The prompt was underspecified. Provide the missing context and re-dispatch. Check the project context file first. If the context doesn't exist, this is a prompt quality issue — note it for `conducty-improve`.
+**NEEDS_CONTEXT:** The prompt was underspecified. Provide the missing context and re-dispatch. Check the project context file first. If the context doesn't exist, this is a prompt quality issue — note it for [[conducty-improve]].
 
 **BLOCKED:** Assess the blocker:
 1. Context problem → provide more context, re-dispatch
-2. Task exceeds agent capability → re-dispatch with a more capable model
+2. Task exceeds agent capability → re-dispatch with a more capable model (`opus`)
 3. Task too large → split into sub-prompts, dispatch sequentially
 4. Plan assumption is wrong → stop and revise the plan for this prompt
 
@@ -97,13 +110,13 @@ When a subagent has been running significantly longer than the prompt's time bud
 1. Check if it's making progress (producing output, committing) or stuck (silent, looping)
 2. If stuck: interrupt and treat as BLOCKED
 3. If progressing but slow: let it finish, but flag the time overrun in checkpoint notes
-4. Either way: this means the complexity estimate was wrong. Note it for `conducty-improve` so future plans calibrate better.
+4. Either way: this means the complexity estimate was wrong. Note it for [[conducty-improve]] so future plans calibrate better.
 
-## Prompt Templates
+## Subagent Prompt Templates
 
-- `./implementer-prompt.md` — Dispatch an implementer subagent
-- `./spec-reviewer-prompt.md` — Dispatch spec compliance reviewer (for spec-review and full-review)
-- `./quality-reviewer-prompt.md` — Dispatch code quality reviewer (for full-review only)
+- [[implementer-prompt]] — Dispatch an implementer subagent
+- [[spec-reviewer-prompt]] — Dispatch spec compliance reviewer (for spec-review and full-review)
+- [[quality-reviewer-prompt]] — Dispatch code quality reviewer (for full-review only)
 
 ## Principles
 
@@ -111,6 +124,6 @@ When a subagent has been running significantly longer than the prompt's time bud
 - **Context is curated, not dumped** — give subagents exactly what they need, nothing more
 - **Review rigor matches risk** — ceremony for high-risk work, speed for low-risk work
 - **Time budgets are circuit breakers** — they surface misestimates, not punish slow agents
-- **Every completion claim needs evidence** — use `conducty-verify` before marking anything done
-- **Failures are learning data** — every BLOCKED, every NEEDS_CONTEXT, every time overrun feeds back to `conducty-improve`
+- **Every completion claim needs evidence** — use [[conducty-verify]] before marking anything done
+- **Failures are learning data** — every BLOCKED, every NEEDS_CONTEXT, every time overrun feeds back to [[conducty-improve]]
 - **The orchestrator doesn't implement** — you coordinate, curate context, and maintain conceptual integrity. The subagents implement.

@@ -1,6 +1,12 @@
-# Installing Conducty for Claude Code
+---
+aliases:
+  - claude-code-install
+tags:
+  - conducty/install
+  - conducty/claude-code
+---
 
-> WIP: This platform integration is not finalized yet. Conducty is currently focused on the Cursor plugin flow, so Claude Code instructions may change and may lag behind the Cursor setup.
+# Installing Conducty for Claude Code
 
 ## Prerequisites
 
@@ -12,6 +18,8 @@
 ```bash
 git clone https://github.com/conducty/conducty.git ~/conducty
 cd ~/conducty
+# Optional — defaults to ~/Obsidian/Conducty
+export CONDUCTY_VAULT="$HOME/Obsidian/Conducty"
 chmod +x install-claude-code.sh
 ./install-claude-code.sh
 ```
@@ -19,7 +27,7 @@ chmod +x install-claude-code.sh
 This will:
 1. Symlink all `conducty-*` skills to `~/.claude/skills/`
 2. Append Conducty workflow and quality rules to `~/.claude/CLAUDE.md`
-3. Create the `~/.conducty/` state directory
+3. Create the Obsidian vault at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`) and seed it with index notes (`Conducty Index`, `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`) and accumulating notes (`Failure Patterns`, `Metrics`, `Prompt Log`)
 
 ## Manual Install
 
@@ -38,25 +46,23 @@ for skill in ~/conducty/skills/conducty-*; do
 done
 ```
 
-### 3. Add rules to CLAUDE.md
+### 3. Add rules to ~/.claude/CLAUDE.md
 
-Copy the contents of the repo's `CLAUDE.md` and append them to `~/.claude/CLAUDE.md`:
+The repo root `CLAUDE.md` already contains the rules. Append it to your global Claude Code config:
 
 ```bash
 cat ~/conducty/CLAUDE.md >> ~/.claude/CLAUDE.md
 ```
 
-Or generate fresh from the `.mdc` source rules:
+Or run the install script, which strips the rule frontmatter and appends just the rule bodies between marker comments (so it can be cleanly removed later).
+
+### 4. Create the vault
 
 ```bash
-cd ~/conducty && ./scripts/generate-claude-md.sh
-cat CLAUDE.md >> ~/.claude/CLAUDE.md
-```
-
-### 4. Create state directories
-
-```bash
-mkdir -p ~/.conducty/{plans,history,context,designs}
+VAULT="${CONDUCTY_VAULT:-$HOME/Obsidian/Conducty}"
+mkdir -p "$VAULT"
+# (optional) seed indexes — the install script does this; or open the vault
+# in Obsidian and let [[conducty-obsidian]] create them lazily on first write.
 ```
 
 ### 5. Restart Claude Code
@@ -65,11 +71,12 @@ Restart Claude Code to discover the newly installed skills.
 
 ## Usage
 
-Claude Code discovers skills from `~/.claude/skills/` automatically. Use them by name:
+Claude Code discovers skills from `~/.claude/skills/` automatically. They trigger from natural-language phrases described in each skill's frontmatter:
 
-- "Plan my day" -- triggers `conducty-plan`
-- "Load context from /path/to/project" -- triggers `conducty-context`
-- "Checkpoint" -- triggers `conducty-checkpoint`
+- "Plan this work" → [[conducty-plan]]
+- "Load context from /path/to/project" → [[conducty-context]]
+- "Checkpoint" → [[conducty-checkpoint]]
+- "What is Conducty?" → [[conducty-system]]
 
 ## Updating
 
@@ -77,7 +84,7 @@ Claude Code discovers skills from `~/.claude/skills/` automatically. Use them by
 cd ~/conducty && git pull
 ```
 
-Skills update instantly through the symlinks. To refresh rules in `~/.claude/CLAUDE.md`, re-run the install script.
+Skills update instantly through the symlinks. To refresh rules in `~/.claude/CLAUDE.md`, remove the section between the marker comments and re-run `install-claude-code.sh`.
 
 ## Uninstalling
 
@@ -85,8 +92,7 @@ Skills update instantly through the symlinks. To refresh rules in `~/.claude/CLA
 # Remove skill symlinks
 rm -f ~/.claude/skills/conducty-*
 
-# Remove Conducty section from CLAUDE.md (between the marker lines)
-# Edit ~/.claude/CLAUDE.md and remove everything between:
+# Remove Conducty section from CLAUDE.md (between the marker lines):
 #   # --- Conducty Rules ---
 #   # --- End Conducty Rules ---
 ```

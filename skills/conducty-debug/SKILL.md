@@ -1,6 +1,12 @@
 ---
 name: conducty-debug
-description: Use when a prompt fails verification, a checkpoint catches an issue, or fix attempts aren't working — applies leverage point analysis and prompt forensics before generating fixes
+description: Leverage-point analysis for failed prompts. Determines whether the fix belongs at the plan, prompt, or code level before generating any fix. Use when a prompt fails verification, a checkpoint catches an issue, fix attempts aren't working, or the user says "debug", "why did this fail", "investigate".
+aliases:
+  - conducty-debug
+  - debug
+tags:
+  - conducty/skill
+  - conducty/debug
 ---
 
 # Conducty Debug — Leverage Point Analysis
@@ -44,24 +50,24 @@ Code bug          →  fixes this specific failure only
 
 ### Phase 2: Investigate Root Cause
 
-Investigation depends on the leverage level:
+Investigation depends on the leverage level. Use Read, Grep, Glob, and Bash (`git diff`, `git log`) to gather evidence — never guess.
 
 **For plan-level issues:**
-- Re-read the design doc from `conducty-shape`. What assumption doesn't hold?
+- Re-read the design doc from [[conducty-shape]]. What assumption doesn't hold?
 - Check the project context file — is it stale or incomplete?
 - Was the complexity underestimated? Was the appetite realistic?
 - Would a different decomposition avoid this failure?
 
 **For prompt-level issues:**
-- Check for prompt smells (see `conducty-tdd`): vague acceptance, missing context, mixed concerns, no verification, unbounded scope
+- Check for prompt smells (see [[conducty-tdd]]): vague acceptance, missing context, mixed concerns, no verification, unbounded scope
 - Was the no-go zone clear enough? Did the agent creep outside scope?
 - Was the characterization step present for existing code modifications?
 - Would a different prompt structure have prevented this?
 
 **For code-level issues:**
 - Read error messages and stack traces completely
-- Check what the prompt actually changed (`git diff`)
-- Trace data flow: where does the bad value originate?
+- Check what the prompt actually changed (`git diff` via Bash)
+- Trace data flow: where does the bad value originate? (Grep)
 - Find working examples of similar code in the same codebase
 - Compare what's different between working and broken
 
@@ -78,9 +84,9 @@ The fix depends on the leverage level:
 
 **Plan-level fix:**
 - Revise the design or plan assumptions
-- May require re-running `conducty-shape` for the affected goal
+- May require re-running [[conducty-shape]] for the affected goal
 - May require restructuring the group
-- Update the daily plan before generating new prompts
+- Update the active plan note before generating new prompts
 
 **Prompt-level fix:**
 - Rewrite the prompt with the missing context, clearer criteria, or better approach
@@ -127,10 +133,12 @@ This pattern indicates the fix is at the wrong leverage level. Three code-level 
 
 ## Pattern Library
 
-After resolving a failure, log the pattern to `~/.conducty/history/failure-patterns.md`:
+After resolving a failure, prepend an entry to `[[Failure Patterns]]` (the accumulating note in the vault — see [[conducty-obsidian]]):
 
 ```markdown
-### {date} — {brief description}
+### {YYYY-MM-DD HHmm} — {brief description}
+- **Plan**: [[Plan YYYY-MM-DD HHmm Topic]]
+- **Prompt**: see [[Prompt Log]] entry P{N}
 - **Leverage point**: plan / prompt / code
 - **Symptom**: {what the failure looked like}
 - **Root cause**: {what was actually wrong}
@@ -138,7 +146,7 @@ After resolving a failure, log the pattern to `~/.conducty/history/failure-patte
 - **Prevention**: {what would prevent this in future prompts}
 ```
 
-The pattern library is read by `conducty-plan` and `conducty-improve` to prevent repeat failures. A pattern that appears twice is a process gap, not bad luck.
+The pattern library is read by [[conducty-plan]] (Step 1) and [[conducty-improve]] to prevent repeat failures. A pattern that appears twice is a process gap, not bad luck. Prepend new entries (newest at top); never delete old ones.
 
 ## Systemic Failure Detection
 
@@ -148,4 +156,4 @@ When investigating a single failure, also check for systemic issues:
 - **Failures across groups** in the same project → likely stale context or incorrect architecture understanding
 - **Failures across projects** → likely a prompt template problem
 
-Systemic issues get plan-level or template-level fixes, not individual prompt fixes. Flag them for `conducty-checkpoint` and `conducty-improve`.
+Systemic issues get plan-level or template-level fixes, not individual prompt fixes. Flag them for [[conducty-checkpoint]] and [[conducty-improve]].

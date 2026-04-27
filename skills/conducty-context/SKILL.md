@@ -1,139 +1,353 @@
 ---
 name: conducty-context
-description: Load and summarize context from an external project directory into Conducty's state. Creates a project summary with bounded context analysis, characterization data, and key interfaces for use during batch planning. Use when the user says "load context", "refresh context", "ingest project", or provides a directory path to analyze.
+description: Ingest a project directory into the Obsidian vault as a linked context sub-graph — Architecture, Conventions, Invariants, Hotspots, Tests, Glossary, plus per-bounded-context module notes. Tracks refresh deltas over time, flags stale context, and feeds prompt generation via backlinks. Use when the user says "load context", "refresh context", "ingest project", "update context for X", or provides a directory path to analyze.
+aliases:
+  - conducty-context
+  - context
+tags:
+  - conducty/skill
+  - conducty/context
+  - conducty/context-engine
 ---
 
-# Conducty Context — Project Ingestion with Bounded Context Analysis
+# Conducty Context — Project Ingestion as a Sub-Graph
 
-Ingest an external project directory and produce a summary that enables high-quality prompt generation. Goes beyond file listing to identify bounded contexts, module interfaces, characterization data, and the seams where Conducty's prompts will interact with existing code.
+A single big `Context My App.md` is a brittle context engine. Re-reading 250 lines on every plan misses what changed and what's stale. Instead, **conducty-context** decomposes a project into a linked sub-graph in the Obsidian vault. Each note has one purpose, a stable filename, and explicit cross-links. Plans pull only the slices they need; refreshes record deltas instead of overwriting.
+
+> [!important] Read [[conducty-obsidian]] first
+> All output goes to the vault. Per-instance notes follow Title Case; this skill writes a hub note plus several sub-notes per project.
+
+## When to Use
+
+- First time loading a project: `conducty-context /path/to/project`
+- The user says "refresh context" or "the project has changed since last load"
+- Plan execution surfaces stale architecture info — a refresh fires
+- A new bounded context emerges that wasn't captured before
+
+## The Project Sub-Graph
+
+For each project, the vault holds one **hub** note plus a set of **slice** notes. All slice names are deterministic so wikilinks resolve from any plan or design.
+
+| Slice | Filename | Holds |
+|-------|----------|-------|
+| Hub | `Context {Project}.md` | One-paragraph project identity, links to every slice, last-refreshed timestamp |
+| Architecture | `Context {Project} Architecture.md` | Bounded contexts, modules, dependency map (Mermaid), seams |
+| Conventions | `Context {Project} Conventions.md` | Coding style, naming, file organization, lint/format commands |
+| Invariants | `Context {Project} Invariants.md` | Public API surfaces, schemas, contracts, anything that MUST NOT change without intent |
+| Hotspots | `Context {Project} Hotspots.md` | Frequently changed files, recent activity, churn risks |
+| Tests | `Context {Project} Tests.md` | Test command, typecheck command, vuln-check command, coverage data, characterization data |
+| Glossary | `Context {Project} Glossary.md` | Domain terms, ubiquitous language, acronyms |
+
+**Bounded-context deep notes** (optional, written when a module is large enough to warrant one):
+
+- `Context {Project} {Module}.md` — purpose, public interface, internal invariants, key files
+
+**Refresh deltas** (one per refresh):
+
+- `Context Refresh {Project} YYYY-MM-DD HHmm.md` — what changed since last load: new files, removed files, new bounded contexts, broken invariants, new convention violations. Older refresh notes accumulate as a temporal record.
 
 ## Workflow
 
 ### Step 1: Identify the Target
 
-The user provides a directory path. Resolve to absolute path. Extract project name from the directory basename.
+Resolve the directory path to absolute. Extract project name from the basename, convert to Title Case for vault filenames (`my-app` → `My App`).
 
-### Step 2: Read Project Identity
+Check the vault for an existing hub note:
 
-Read these files if they exist (skip any that don't):
+```bash
+test -f "$VAULT/Context $PROJECT.md" && echo "refresh" || echo "first load"
+```
+
+### Step 2: First Load vs. Refresh
+
+**First load:** generate every slice + the hub. Move on.
+
+**Refresh:** read the existing hub's `last_refreshed` frontmatter. Compute deltas (Step 7) and either edit each slice in place (preserving frontmatter, prepending changes) or write a refresh-delta note describing the diff and updating the hub's `last_refreshed`.
+
+### Step 3: Read Project Identity
+
+Read these files if present (skip if absent):
 
 - `README.md` or `README`
 - `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `Gemfile`, `pom.xml`
 - `docker-compose.yml`, `Dockerfile`
+- `AGENTS.md`, `CLAUDE.md` — agent instructions
+- `.editorconfig`, `tsconfig.json`, `.eslintrc*`, `prettier*`, `ruff.toml`, `.golangci.yml` — style/lint
+- `.claude/` if present — local skills/commands
 
-### Step 3: Read Conventions and Rules
-
-- `.cursor/rules/*.mdc` — Cursor rules reveal coding conventions
-- `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` — agent instruction files
-- `.editorconfig`, `tsconfig.json`, `.eslintrc*`, `prettier*` — style/lint configs
+Capture: language, framework, key dependencies, build/test/lint commands, declared style rules, any agent instructions.
 
 ### Step 4: Map Architecture and Bounded Contexts
 
-**Directory structure:** List `src/` or `lib/` two levels deep.
+Use Glob (`src/**`, `lib/**`, `pkg/**`, `app/**`) two levels deep to enumerate modules. For each module:
 
-**Bounded context analysis** (from Domain-Driven Design):
-- Identify the main modules or packages
-- For each: what is its responsibility? What does it depend on? What depends on it?
-- Map the interfaces between modules: how do they communicate?
-- Identify the seams: where can behavior be changed without modifying everything?
+- What is its responsibility?
+- What does it import from other modules?
+- What imports it?
+- What's its public surface (exports)?
 
-This analysis helps `conducty-plan` decompose goals into prompts that respect module boundaries, and helps `conducty-shape` identify no-go zones.
+**Render a Mermaid dependency diagram** in the Architecture slice — Obsidian renders Mermaid natively:
 
-### Step 5: Gather Characterization Data
-
-**Test coverage:**
-- Run the project's test command if identifiable (note: don't modify anything)
-- Record: number of tests, pass/fail, approximate coverage
-- If tests can't be run, note the test command for future use
-
-**Known invariants:**
-- Public API surfaces
-- Database schemas
-- Configuration contracts
-- Anything that MUST NOT change without explicit intent
-
-**Critical paths:**
-- Which code paths handle the most important user-facing behavior?
-- Which files change most frequently? (`git log --format='%H' -- . | head -50` + `git diff-tree --no-commit-id --name-only -r` on recent commits)
-
-### Step 6: Check Recent Activity
-
-- `git log --oneline -20` — last 20 commits
-- `git diff --stat HEAD~5` — recent file changes
-- `git branch -a` — active branches
-- Any TODO/FIXME markers in recent changes
-
-### Step 7: Generate the Summary
-
-Write to `~/.conducty/context/{project-name}.md`:
-
-```markdown
-# Context: {project-name}
-
-**Path**: /absolute/path/to/project
-**Last refreshed**: YYYY-MM-DD HH:MM
-
-## Tech Stack
-- Language: ...
-- Framework: ...
-- Key dependencies: ...
-
-## Architecture Overview
-- Brief description of project structure
-- Key directories and what they contain
-
-## Bounded Contexts
-| Module | Responsibility | Depends On | Depended By |
-|--------|---------------|------------|-------------|
-| {module} | {what it does} | {imports} | {who imports it} |
-
-## Key Interfaces
-- {module A} ↔ {module B}: {how they communicate}
-- {public API surface}: {contract description}
-
-## Characterization Data
-- **Test command**: `{command}`
-- **Test count**: {N} tests, {N} passing
-- **Known invariants**: {list}
-- **Critical paths**: {list of important code paths}
-
-## Seams
-- {places where behavior can be changed with minimal blast radius}
-
-## Conventions
-- {coding style rules from configs/rules}
-- {naming conventions}
-- {file organization patterns}
-
-## Recent Changes (last 20 commits)
-- {commit summaries}
-
-## Active Branches
-- {branch list}
-
-## Frequently Changed Files
-- {files that change most often — likely hot spots}
-
-## Notes
-- {TODO/FIXME patterns}
-- {open work in progress}
-- {anything that would surprise someone new to the codebase}
+```mermaid
+flowchart LR
+    auth --> session
+    api --> auth
+    api --> billing
+    billing --> session
+    session --> db
 ```
 
-### Step 8: Confirm
+For modules with non-trivial internal complexity (>500 lines, multiple sub-responsibilities, or a public API surface other code depends on), generate a **bounded-context deep note** `Context {Project} {Module}.md` and link it from Architecture.
 
-Tell the user the context was saved. Show a brief summary highlighting:
-- Bounded contexts identified
+### Step 5: Capture Conventions
+
+From style configs and observed code:
+
+- Naming: file, type, function, variable
+- File organization: where do new features go? where do tests live?
+- Patterns: error handling, logging, configuration, dependency injection
+- Forbidden: things the project explicitly rejects (commented in CLAUDE.md, lint rules, README)
+- Lint/format commands
+
+### Step 6: Capture Invariants
+
+Things that MUST NOT change silently:
+
+- Public API surfaces (HTTP routes, exported functions, RPC schemas)
+- Database schemas / migrations
+- Configuration contracts (env vars, config files)
+- File formats / wire formats
+- Performance budgets if declared
+
+For each invariant, note where it lives and what would break if it changed.
+
+### Step 7: Capture Hotspots and Recent Activity
+
+Bash:
+
+```bash
+git log --format='%H %s' -50
+git log --format='' --name-only -50 | sort | uniq -c | sort -rn | head -20
+git diff --stat HEAD~10
+git branch -a --sort=-committerdate | head -10
+```
+
+The most-touched files are the hot spots. Plans that touch hot spots inherit higher complexity ratings.
+
+Grep for `TODO|FIXME|XXX|HACK` in recent commits' files.
+
+### Step 8: Capture Test + Tooling Commands
+
+This slice is consumed directly by [[conducty-ship]] — the entries here populate the ship battery.
+
+```yaml
+test: npm test
+test_unit: npm run test:unit
+test_integration: npm run test:integration
+typecheck: tsc --noEmit
+lint: npm run lint
+format: npm run format -- --check
+vuln_check: npm audit --audit-level=high
+build: npm run build
+```
+
+If a command can't be run safely (long-running, external deps required), record it but don't execute. If you can run it, do — record `last_test_count`, `last_pass_count`, `last_run` timestamp.
+
+### Step 9: Build the Glossary
+
+Pull domain terms from:
+
+- README headings + first occurrence prose
+- Public type names, route names, table names
+- Comments that define terms
+
+For each: term + 1-sentence definition + a backlink to the most relevant code path. The glossary makes plans precise — when a prompt says "publish a SessionTrace", everyone reading the plan knows what that means without re-deriving it.
+
+### Step 10: Write the Sub-Graph
+
+Write each slice with frontmatter and a `## Related` section that links the hub and peers.
+
+#### Hub note
+
+```markdown
+---
+type: context
+project: {project-name}
+path: /absolute/path
+last_refreshed: YYYY-MM-DD HH:MM
+language: {primary language}
+tags: [conducty, conducty/context, conducty/context-hub]
+---
+
+# Context: {Project Title Case}
+
+{One-paragraph project identity: what it does, who uses it, primary language/framework.}
+
+## Slices
+
+- [[Context {Project} Architecture]]
+- [[Context {Project} Conventions]]
+- [[Context {Project} Invariants]]
+- [[Context {Project} Hotspots]]
+- [[Context {Project} Tests]]
+- [[Context {Project} Glossary]]
+
+## Bounded-context deep notes
+
+- [[Context {Project} {Module1}]]
+- [[Context {Project} {Module2}]]
+
+## Refresh history
+
+- [[Context Refresh {Project} 2026-04-27 1830]]
+- [[Context Refresh {Project} 2026-04-20 0915]]
+
+## Related
+
+- Index: [[Context Index]]
+- Used by plans: (backlinks fill in)
+```
+
+#### Slice notes
+
+Each slice carries `type: context-{slice}` (e.g. `context-architecture`), the project frontmatter, and `## Related` linking the hub and any peer slice that's relevant (e.g. Architecture links Tests because deep modules need their own test commands).
+
+#### Bounded-context deep note (optional)
+
+```markdown
+---
+type: context-module
+project: {project-name}
+module: {module-name}
+path: /absolute/path/src/{module}
+tags: [conducty, conducty/context, conducty/bounded-context]
+---
+
+# Context: {Project} — {Module}
+
+**Responsibility**: {one sentence}
+**Public interface**: {exported names / routes / types}
+**Internal invariants**: {what must hold inside}
+**Key files**: {top 3-5 files to read first}
+
+## Dependencies
+
+- Depends on: [[Context {Project} {Other Module}]]
+- Depended by: [[Context {Project} {Yet Another Module}]]
+
+## Related
+
+- Hub: [[Context {Project}]]
+- Architecture: [[Context {Project} Architecture]]
+```
+
+### Step 11: Refresh Delta (Refresh-Only)
+
+When refreshing an existing project, write `Context Refresh {Project} YYYY-MM-DD HHmm.md`:
+
+```markdown
+---
+type: context-refresh
+project: {project-name}
+date: YYYY-MM-DD
+time: HHmm
+prior_refresh: YYYY-MM-DD HHmm
+tags: [conducty, conducty/context, conducty/refresh]
+---
+
+# Context Refresh — {Project} — YYYY-MM-DD HHmm
+
+Compared against the prior refresh ({prior date}).
+
+## Files
+
+- **New** ({n}): {list with one-line purpose where obvious}
+- **Removed** ({n}): {list}
+- **Major churn** ({n}): {list with delta line counts}
+
+## Bounded contexts
+
+- **New**: {module names + responsibility}
+- **Removed**: {names}
+- **Boundary changes**: {module X now depends on Y where it didn't before}
+
+## Invariants
+
+- **Broken / deviated**: {public API change, schema change, etc. — flag prominently}
+- **New**: {newly declared contracts}
+
+## Conventions
+
+- **Drift**: {new patterns appearing inconsistent with declared conventions}
+- **New rules**: {explicit additions to lint config or AGENTS.md}
+
+## Tests
+
+- Test count: {old → new}
+- Pass count: {old → new}
+- New failing tests: {list}
+
+## Notes
+
+{anything surprising worth flagging for the next plan}
+
+## Related
+
+- Hub: [[Context {Project}]]
+- Architecture: [[Context {Project} Architecture]]
+- Prior refresh: [[Context Refresh {Project} YYYY-MM-DD HHmm]]
+```
+
+Apply changes to slice notes (Edit, not full overwrite). Update the hub's `last_refreshed` frontmatter. Prepend the new refresh-delta note to the hub's `## Refresh history` list.
+
+### Step 12: Stale Detection
+
+After writing, check **all other** project hub notes in the vault. For any hub with `last_refreshed` older than {stale threshold — default 14 days, configurable per project via frontmatter `stale_after_days`}, flag it in your report:
+
+> "Stale context: `[[Context Other Project]]` last refreshed 2026-04-10 (17 days ago). Consider refresh before next plan touching it."
+
+This catches drift before it bites a plan.
+
+### Step 13: Confirm
+
+Tell the user:
+
+- Path written/refreshed
+- Bounded contexts identified (count + names)
 - Key seams for prompt decomposition
-- Any characterization concerns (tests failing, missing coverage)
-- If this is a refresh, note what changed since last load
+- Any characterization concerns (failing tests, no tests, command not found)
+- For refresh: a one-line summary of the most important delta
+- Any **stale** hubs flagged (Step 12)
+
+## Reading Context During Planning
+
+[[conducty-plan]] and [[conducty-shape]] do **not** read the entire sub-graph by default. They read the **hub** plus the slice(s) the plan needs:
+
+- A new feature touching auth → read `[[Context {Project}]]`, `[[Context {Project} Architecture]]`, `[[Context {Project} Conventions]]`, `[[Context {Project} {Auth Module}]]` if present.
+- A refactor → also read `[[Context {Project} Tests]]` (for characterization) and `[[Context {Project} Invariants]]`.
+- A ship gate → [[conducty-ship]] reads `[[Context {Project} Tests]]` only.
+- A security/perf review → read `[[Context {Project} Invariants]]` + `[[Context {Project} Hotspots]]`.
+
+Slice loading keeps prompt context budgets sane and makes "what do you know about X?" answerable by Glob + Read on a known filename, not freeform search.
+
+## Backlink-Driven Planning
+
+When [[conducty-plan]] starts a project plan, it can ask Obsidian-style: "find every plan / design / failure-pattern that ever referenced this project." That's a vault grep for `[[Context {Project}` (matches the hub and all slices). The result is the project's full historical context — every prior decision, failure, design choice — surfaced for the new plan.
+
+```bash
+# Find every note referencing this project's context
+grep -rl "\\[\\[Context {Project}" "$CONDUCTY_VAULT"
+```
+
+This is the payoff for splitting context into a sub-graph: history compounds.
 
 ## Guidelines
 
-- Keep summaries under 250 lines — they need to fit alongside other projects in context
-- **Bounded contexts and seams are the most valuable output** — they directly inform prompt decomposition
-- Characterization data prevents prompts from breaking things they didn't intend to change
-- Don't include file contents verbatim unless they're short config files
-- If the project is very large, prioritize the main source directory and public interfaces
-- Always include the absolute path so prompts reference the correct directory
-- Flag any surprises (failing tests, no tests, circular dependencies) prominently
+- **Slice over single-doc** — easier to refresh deltas, easier to prompt with only what's needed
+- **Determinism in filenames** — every slice is `Context {Project} {Slice}.md`, no improvising
+- **Mermaid in Architecture** — Obsidian renders it; don't waste lines on ASCII art
+- **Refresh deltas, not overwrites** — preserve the temporal record
+- **Stale flag on every load** — drift kills plans; surface it proactively
+- **Bounded-context deep notes are optional** — only for modules large enough to merit one. Don't generate one per file.
+- **Glossary feeds prompt precision** — terms used in plans should resolve to glossary entries
+- **Tests slice is [[conducty-ship]]'s contract** — keep its commands current and runnable

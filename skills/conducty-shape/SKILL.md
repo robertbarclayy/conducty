@@ -1,21 +1,26 @@
 ---
 name: conducty-shape
-description: Use when a goal is Medium or High complexity, when requirements are unclear, when scope needs bounding, or when the user says "shape", "design", "brainstorm", "think through" — defines appetite, boundaries, and design before prompts are written
+description: Defines appetite, scope, no-go zones, and design before any prompts are written. Use when a goal is Medium or High complexity, requirements are unclear, scope needs bounding, or the user says "shape", "design", "brainstorm", "think through".
+aliases:
+  - conducty-shape
+  - shape
+tags:
+  - conducty/skill
+  - conducty/shape
 ---
 
 # Conducty Shape — Appetite, Boundaries, Design
 
 Turn unclear or complex goals into bounded, executable designs. Shaping answers three questions before any prompt is written: How much is this worth? What's in scope? What's explicitly out?
 
-This is not brainstorming in the open-ended sense. Shaping is opinionated — you propose boundaries, cut rabbit holes, and produce a design that fits the declared appetite. The output is a design doc that `conducty-plan` can decompose into prompts.
+This is not brainstorming in the open-ended sense. Shaping is opinionated — you propose boundaries, cut rabbit holes, and produce a design that fits the declared appetite. The output is a design doc that [[conducty-plan]] can decompose into prompts.
 
-<HARD-GATE>
-Do NOT generate prompts for a non-trivial goal until you have presented a design with appetite, scope, and no-go zones, and the user has approved it.
-</HARD-GATE>
+> [!warning] Hard gate
+> Do NOT generate prompts for a non-trivial goal until you have presented a design with appetite, scope, and no-go zones, and the user has approved it.
 
 ## When to Use
 
-**Mandatory (invoked by `conducty-plan`):**
+**Mandatory (invoked by [[conducty-plan]]):**
 - Goal is Medium or High complexity
 - Goal spans multiple subsystems or projects
 - Goal requirements are ambiguous or underspecified
@@ -46,7 +51,7 @@ If the user hasn't thought about appetite, help them: "This feels like a half-da
 Ask questions one at a time to understand what the user wants:
 - **Prefer multiple-choice questions** — faster to answer, forces you to have a hypothesis
 - **One question per message** — don't overwhelm
-- **Check project context first** (`~/.conducty/context/{project}.md`) before asking questions the context already answers
+- **Check the project context note first** (`[[Context {Project}]]` in the vault — see [[conducty-obsidian]]) before asking questions the context already answers
 - Focus on: purpose, constraints, what "done" looks like, who benefits
 
 Keep it tight. You have the appetite as a constraint — don't spend 30 minutes of questions on a 2-hour task.
@@ -104,21 +109,28 @@ Once the approach is chosen, present the design:
 - Smaller units are easier for agents to implement reliably — a file that can be held in context produces better results than one that can't
 
 **Working in existing codebases:**
-- Explore the current structure before proposing changes. Follow existing patterns.
+- Explore the current structure (use Glob/Grep) before proposing changes. Follow existing patterns.
 - Where existing code has problems that affect the work, include targeted improvements as part of the design
 - Don't propose unrelated refactoring. Stay focused on what serves the current goal.
 - Identify characterization needs: which existing behavior must be verified before changes begin?
 
-### Step 8: Save the Design Doc
+### Step 8: Save the Design Note
 
-Write the approved design to `~/.conducty/designs/YYYY-MM-DD-<topic>.md`:
+Write the approved design to the vault as `Design YYYY-MM-DD HHmm {Topic Title Case}.md` (see [[conducty-obsidian]] for full conventions). The timestamp matches the plan that will consume the design.
 
 ```markdown
-# Design: {topic}
+---
+type: design
+date: YYYY-MM-DD
+time: HHmm
+topic: {Topic Title Case}
+project: {project-name}
+appetite: {time budget}
+tags: [conducty, conducty/design]
+---
 
-**Date**: YYYY-MM-DD
-**Project**: {project-name}
-**Appetite**: {time budget}
+# Design: {Topic}
+
 **Goal**: {one-sentence goal}
 
 ## Approach
@@ -147,12 +159,20 @@ Write the approved design to `~/.conducty/designs/YYYY-MM-DD-<topic>.md`:
 
 ## Testing Strategy
 {how to verify the whole thing works}
+
+## Related
+
+- Index: [[Designs Index]]
+- Project: [[Context {Project}]]
+- Consumed by: [[Plan YYYY-MM-DD HHmm {Topic}]]
 ```
+
+Then prepend the new design's wikilink to `[[Designs Index]]` (Edit, not Write).
 
 ### Step 9: Return to Planning
 
-Hand control back to `conducty-plan` with:
-- The design doc path
+Hand control back to [[conducty-plan]] with:
+- The design note wikilink (e.g. `[[Design 2026-04-27 0930 Auth Cleanup]]`)
 - The acceptance criteria (become prompt verification steps)
 - The components list (become individual prompts)
 - Suggested decomposition: which components are parallel vs. sequential

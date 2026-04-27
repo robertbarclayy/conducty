@@ -1,6 +1,13 @@
 ---
 name: conducty-dialectic
-description: Multi-persona decision analysis through structured dialectic. Six software-engineering archetypes debate a question to uncover the Design Truth — the synthesis that survives critique from every angle. Use when the user says "analyze this decision", "dialectic", "decision analysis", "think this through", "debate this", or faces an architectural/design choice.
+description: Multi-persona decision analysis through structured dialectic. Six software-engineering archetypes debate a question to uncover the Design Truth. Use when the user says "analyze this decision", "dialectic", "decision analysis", "think this through", "debate this", or faces an architectural/design choice.
+aliases:
+  - conducty-dialectic
+  - dialectic
+tags:
+  - conducty/skill
+  - conducty/dialectic
+  - conducty/decision
 ---
 
 # Conducty Dialectic — Decision Analysis
@@ -26,13 +33,13 @@ A **Moderator** drives the process: they don't take positions but facilitate, st
 - **Channel the mindset**: When a Core Drive doesn't fit, fall back to the persona's broader intellectual style.
 - **Conservative deviation**: Try the Core Drives first. Only abandon them if they force a contrived take.
 
-See [dialectic-protocol.md](dialectic-protocol.md) for full persona profiles.
+See [[dialectic-protocol]] for full persona profiles.
 
 ## Workflow
 
 ### Step 1: Read the Full Protocol
 
-Read [dialectic-protocol.md](dialectic-protocol.md) for the complete persona profiles, debate rules, and output contract. Follow it precisely.
+Read [[dialectic-protocol]] for the complete persona profiles, debate rules, and output contract. Follow it precisely.
 
 ### Step 2: Grounding Phase
 
@@ -75,7 +82,7 @@ Follow the Output Contract from the protocol:
 
 ### Step 7: Log Outcome (Optional)
 
-If a Conducty daily plan is active at `~/.conducty/plans/YYYY-MM-DD.md`, update the relevant prompt's status. Log the decision summary and key trade-offs to `~/.conducty/history/prompt-log.md`.
+If a Conducty plan note is active in the vault, update the relevant prompt's status there. Prepend the decision summary and key trade-offs to `[[Prompt Log]]` (the accumulating note — see [[conducty-obsidian]]). If the decision warrants a design note, write `Design YYYY-MM-DD HHmm {Topic}.md` and link it from the plan.
 
 ## Guidelines
 

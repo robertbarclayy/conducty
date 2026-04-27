@@ -1,18 +1,28 @@
+---
+aliases:
+  - implementer-prompt
+tags:
+  - conducty/template
+  - conducty/subagent-prompt
+  - conducty/execute
+---
+
 # Implementer Subagent Prompt Template
 
-Use this template when dispatching an implementer subagent via the Task tool.
+Use this template when dispatching an implementer subagent via the Claude Code **Task** tool.
 
 ```
 Task tool:
   description: "Implement P{N}: {short description}"
-  model: {fast / default — from prompt's Model field}
+  subagent_type: general-purpose
+  model: {haiku / sonnet / opus — from prompt's complexity}
   prompt: |
     You are implementing a specific task from a planned execution queue.
 
     ## Task
 
-    {FULL TEXT of the prompt from the daily plan — paste it here, never
-    make the subagent read the plan file}
+    {FULL TEXT of the prompt from the active plan note — paste it here,
+    never make the subagent read the vault plan note}
 
     ## Context
 
@@ -29,7 +39,7 @@ Task tool:
 
     ## Boundaries
 
-    **No-go zones** (from the plan — do NOT do these):
+    **No-go zones** (from the plan note — do NOT do these):
     {paste no-go zones from the prompt}
 
     These are hard boundaries. Scope creep is the most common failure mode.
@@ -47,12 +57,15 @@ Task tool:
        to establish a baseline (characterization)
     2. Follow TDD: write a failing test, verify it fails, implement, verify
        it passes
-    3. Verify your implementation works (run the verification command)
+    3. Verify your implementation works (run the verification command via Bash)
     4. Commit your work
     5. Self-review (see below)
     6. Report back
 
     Work from: {directory from the prompt}
+
+    **Available tools:** Read, Write, Edit, Bash, Grep, Glob.
+    Use Edit (not Write) for modifying existing files.
 
     **While you work:** If you encounter something unexpected, unclear, or
     outside the boundaries — stop and ask. Don't push through uncertainty.
@@ -92,3 +105,8 @@ Task tool:
     BLOCKED = cannot complete, something fundamental is wrong.
     NEEDS_CONTEXT = need information that wasn't provided.
 ```
+
+## Related
+
+- [[conducty-execute]] — invokes this template
+- [[spec-reviewer-prompt]], [[quality-reviewer-prompt]] — review counterparts

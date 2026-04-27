@@ -1,3 +1,13 @@
+---
+aliases:
+  - refactor
+  - refactor-template
+tags:
+  - conducty/template
+  - conducty/prompt-template
+  - conducty/plan
+---
+
 # Refactor Prompt Template
 
 Use when generating a prompt for code refactoring.
@@ -38,7 +48,7 @@ Use when generating a prompt for code refactoring.
     - Do not add new features or "improvements" while refactoring
     - {additional boundaries}
 
-    See ~/.conducty/context/{project}.md for architecture overview.
+    See [[Context {Project Title Case}]] in the vault for architecture overview.
 
     **Before you begin**: Read the existing code thoroughly. If the refactor
     scope is larger than described, or if you discover that the current
@@ -81,3 +91,8 @@ Use when generating a prompt for code refactoring.
 - Refactors are never verify-only — at minimum spec-review to confirm no behavior change
 - Before/After description is the contract — deviations are spec failures
 - No-go zones explicitly forbid the most common refactor failure: scope creep
+
+## Related
+
+- [[conducty-plan]], [[conducty-tdd]]
+- [[feature]], [[bugfix]], [[test]], [[decision]] — sibling templates
