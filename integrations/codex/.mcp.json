@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "conducty-codex": {
+      "type": "stdio",
+      "command": "node",
+      "timeout": 60,
+      "args": [
+        "./mcp/server.mjs"
+      ],
+      "note": "Dependency-free local MCP server for Conducty vault planning, prompt logs, checkpoints, and improvement notes."
+    }
+  }
+}

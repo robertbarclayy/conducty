@@ -53,6 +53,27 @@ Restart Claude Code afterward to pick up the new skills. Open the vault in Obsid
 
 See [`.claude-code/INSTALL.md`](.claude-code/INSTALL.md) for the manual install path and uninstall instructions.
 
+## Codex Integration
+
+Conducty also ships a Codex integration under [`integrations/codex`](integrations/codex/). It packages the Conducty loop as a Codex plugin with one skill and a dependency-free local MCP server.
+
+The MCP server exposes deterministic vault tools for the parts of Conducty that should not depend on hand-edited chat state:
+
+- initialize the Obsidian vault
+- create timestamped plan notes
+- check prompt smells before execution
+- log prompt outcomes
+- append checkpoint health metrics to the active plan
+- write improvement kata notes
+- list recent vault notes
+
+Run the integration smoke test:
+
+```bash
+cd integrations/codex
+node scripts/smoke-test.mjs
+```
+
 ## Quickstart — Your First Plan
 
 After install, open Claude Code in any project directory and run:
@@ -318,6 +339,17 @@ conducty/
 ├── install-claude-code.sh       # Installer
 ├── assets/
 │   └── icon.png
+├── integrations/
+│   └── codex/                    # Codex plugin + MCP vault tools
+│       ├── .codex-plugin/
+│       │   └── plugin.json
+│       ├── .mcp.json
+│       ├── mcp/
+│       │   └── server.mjs
+│       ├── scripts/
+│       │   └── smoke-test.mjs
+│       └── skills/
+│           └── conducty-codex/
 ├── .claude-code/
 │   └── INSTALL.md               # Detailed install / uninstall guide
 ├── skills/

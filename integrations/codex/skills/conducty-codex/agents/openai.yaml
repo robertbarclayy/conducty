@@ -1,0 +1,14 @@
+interface:
+  display_name: "Conducty Codex"
+  short_description: "Plan, verify, and improve with a Conducty vault"
+  default_prompt: "Use $conducty-codex to plan this work with appetite, tracer, verification, and improvement notes."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "conducty-codex"
+      description: "Local Conducty vault MCP server"
+      transport: "stdio"
+
+policy:
+  allow_implicit_invocation: true
