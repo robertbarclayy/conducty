@@ -31,6 +31,8 @@ The server resolves the vault in this order:
 2. `CONDUCTY_VAULT`
 3. `~/Obsidian/Conducty`
 
+For an always-on setup, set `CONDUCTY_VAULT` once at the user or shell-profile level so every project writes to the same learning graph.
+
 ## Local Smoke Test
 
 From this directory:

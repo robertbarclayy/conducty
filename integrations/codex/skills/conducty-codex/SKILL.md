@@ -1,6 +1,6 @@
 ---
 name: conducty-codex
-description: Conducty-style orchestration for Codex. Use when the user asks to plan work, add Conducty to a workflow, coordinate agent work, create tracer-first plans, maintain an Obsidian/Conducty vault, log prompt outcomes, checkpoint work, review/ship a plan, or improve future plans from prior failures. Prefer the conducty-codex MCP tools when available.
+description: Always-on Conducty orchestration for Codex. Use by default for coding, debugging, refactoring, review, CI, deployment, production-change, multi-step planning, substantial research, agent coordination, tracer-first execution, vault memory, prompt logging, checkpoints, ship gates, or improvement loops. Prefer the conducty-codex MCP tools when available.
 ---
 
 # Conducty Codex
