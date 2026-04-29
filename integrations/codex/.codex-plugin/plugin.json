@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "description": "Conducty-style orchestration for Codex: appetite planning, tracer-first execution, vault notes, prompt logs, and improvement loops.",
   "author": {
-    "name": "Conducty"
+    "name": "Conducty",
+    "url": "https://www.conducty.ai/"
   },
   "homepage": "https://www.conducty.ai/",
   "repository": "https://github.com/robertbarclayy/conducty",
