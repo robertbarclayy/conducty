@@ -6,8 +6,73 @@ This directory packages Conducty for Codex as:
 - one Conducty skill
 - a dependency-free local MCP server
 - a smoke test that exercises the MCP server over stdio
+- a one-command local installer
+- a doctor that diagnoses plugin, vault, marketplace, and MCP health
 
 The integration preserves Conducty's existing vault contract. Plans, improvements, prompt logs, metrics, and indexes are still regular Markdown notes in the Obsidian vault.
+
+## Install
+
+From this directory:
+
+```bash
+# macOS / Linux
+./scripts/install-codex.sh
+
+# Windows PowerShell
+./scripts/install-codex.ps1
+```
+
+The installer:
+
+1. copies this integration to `~/plugins/conducty-codex`
+2. creates or updates `~/.agents/plugins/marketplace.json`
+3. enables `conducty-codex@aura-local` in the Codex config
+4. registers the local `aura-local` marketplace source
+5. bootstraps the Conducty vault skeleton
+6. runs the doctor
+
+Restart Codex after install so the plugin catalog and MCP tools are refreshed.
+
+Installer options:
+
+```bash
+node scripts/install-codex.mjs --help
+```
+
+Useful flags:
+
+- `--vault <path>`: choose the Conducty vault path
+- `--codex-home <path>`: choose the Codex config directory
+- `--home <path>`: choose the home directory used for `~/.agents` and `~/plugins`
+- `--dry-run`: print resolved paths without writing
+- `--skip-doctor`: skip the final doctor run
+
+## Doctor
+
+Run the doctor when the plugin does not appear in Codex, the MCP server does not start, or the vault is missing expected notes:
+
+```bash
+node scripts/doctor.mjs
+```
+
+The doctor checks:
+
+- Node runtime version
+- required plugin files
+- plugin manifest shape
+- MCP config
+- skill frontmatter
+- vault skeleton
+- local marketplace JSON, including UTF-8 BOM detection
+- Codex config entries
+- MCP smoke test
+
+Use `--fix` to bootstrap missing vault notes and safely remove a UTF-8 BOM from the local marketplace file:
+
+```bash
+node scripts/doctor.mjs --fix
+```
 
 ## What the MCP Server Adds
 

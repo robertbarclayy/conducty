@@ -67,6 +67,26 @@ The MCP server exposes deterministic vault tools for the parts of Conducty that 
 - write improvement kata notes
 - list recent vault notes
 
+Install the local Codex plugin:
+
+```bash
+cd integrations/codex
+./scripts/install-codex.sh
+```
+
+On Windows PowerShell:
+
+```powershell
+cd integrations/codex
+./scripts/install-codex.ps1
+```
+
+If the plugin does not appear in Codex, run the doctor:
+
+```bash
+node scripts/doctor.mjs --fix
+```
+
 Run the integration smoke test:
 
 ```bash
