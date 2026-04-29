@@ -30,6 +30,8 @@
       "Write"
     ],
     "websiteURL": "https://www.conducty.ai/",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
     "defaultPrompt": [
       "Plan this work with Conducty.",
       "Create a tracer-first Conducty plan.",
