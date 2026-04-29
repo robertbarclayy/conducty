@@ -17,6 +17,8 @@ Use this skill to run Conducty's loop inside Codex: Shape -> Plan -> Trace -> Ex
 6. Log each prompt result with `log_prompt_outcome`.
 7. Record group health with `record_checkpoint`.
 8. Record learning with `record_improvement` when the plan ends or a failure pattern appears.
+9. Create a pre-merge ship report with `create_ship_report` when verification evidence and residual risks are known.
+10. Audit the vault with `audit_vault_graph` when notes, links, or closure signals need a health check.
 
 ## Codex Boundaries
 
@@ -52,6 +54,8 @@ Tracer: yes
 - `log_prompt_outcome`: prepend a terse entry to `Prompt Log`.
 - `record_checkpoint`: append group health metrics to the plan note.
 - `record_improvement`: write an improvement kata note and update `Improvements Index`.
+- `create_ship_report`: write a green/yellow/red pre-merge verdict with verification evidence and residual risks.
+- `audit_vault_graph`: report broken wikilinks, duplicate basenames, orphan user notes, plans without ship reports, and plans without checkpoints.
 
 ## Finish Criteria
 

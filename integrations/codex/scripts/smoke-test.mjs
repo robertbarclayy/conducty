@@ -100,7 +100,7 @@ try {
 
   const tools = await request("tools/list");
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
-  for (const required of ["bootstrap_vault", "create_plan", "check_prompt_smells", "log_prompt_outcome", "record_checkpoint", "record_improvement"]) {
+  for (const required of ["bootstrap_vault", "create_plan", "check_prompt_smells", "log_prompt_outcome", "record_checkpoint", "record_improvement", "create_ship_report", "audit_vault_graph"]) {
     if (!toolNames.has(required)) throw new Error(`Missing tool: ${required}`);
   }
 
@@ -134,6 +134,22 @@ try {
   const plans = fs.readdirSync(path.join(tempVault, "Plans")).filter((file) => file.endsWith(".md"));
   if (plans.length !== 1) {
     throw new Error("create_plan did not create exactly one plan");
+  }
+
+  const earlyAudit = await request("tools/call", {
+    name: "audit_vault_graph",
+    arguments: {
+      vault: tempVault,
+      limit: 5
+    }
+  });
+  const earlyAuditText = earlyAudit.content?.[0]?.text || "";
+  if (
+    !earlyAuditText.includes("Verdict: needs attention") ||
+    !earlyAuditText.includes("Plans without ship reports: 1") ||
+    !earlyAuditText.includes("Plans without checkpoints: 1")
+  ) {
+    throw new Error(`audit_vault_graph did not catch open plan closure gaps:\n${earlyAuditText}`);
   }
 
   const smells = await request("tools/call", {
@@ -193,6 +209,45 @@ try {
       nextExperiment: "Use it on a real plan"
     }
   });
+
+  const ship = await request("tools/call", {
+    name: "create_ship_report",
+    arguments: {
+      vault: tempVault,
+      plan: plans[0],
+      verdict: "green",
+      summary: "Smoke test completed the Conducty Codex loop.",
+      verification: ["node scripts/smoke-test.mjs"],
+      evidence: ["MCP tools created plan, checkpoint, improvement, and ship report notes"],
+      changedFiles: ["integrations/codex/mcp/server.mjs"],
+      nextSteps: ["Use the integration on a real branch"]
+    }
+  });
+  const shipText = ship.content?.[0]?.text || "";
+  if (!shipText.includes("Ship Report Created")) {
+    throw new Error("create_ship_report did not report success");
+  }
+
+  const shipReports = fs.readdirSync(path.join(tempVault, "Ship Reports")).filter((file) => file.endsWith(".md"));
+  if (shipReports.length !== 1) {
+    throw new Error("create_ship_report did not create exactly one ship report");
+  }
+  const shipIndex = fs.readFileSync(path.join(tempVault, "Indexes", "Ship Reports Index.md"), "utf8");
+  if (!shipIndex.includes(path.basename(shipReports[0], ".md"))) {
+    throw new Error("create_ship_report did not update Ship Reports Index");
+  }
+
+  const audit = await request("tools/call", {
+    name: "audit_vault_graph",
+    arguments: {
+      vault: tempVault,
+      limit: 5
+    }
+  });
+  const auditText = audit.content?.[0]?.text || "";
+  if (!auditText.includes("Verdict: clean")) {
+    throw new Error(`audit_vault_graph expected a clean vault, got:\n${auditText}`);
+  }
 
   child.kill();
   fs.rmSync(tempVault, { recursive: true, force: true });

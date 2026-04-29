@@ -47,7 +47,7 @@ chmod +x install-claude-code.sh
 This will:
 1. Symlink all `conducty-*` skills into `~/.claude/skills/`
 2. Append the Conducty workflow and quality rules to `~/.claude/CLAUDE.md` (between marker comments so they can be cleanly removed)
-3. Create the vault at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`) and seed it with index notes (`Conducty Index`, `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`) and accumulating notes (`Failure Patterns`, `Metrics`, `Prompt Log`)
+3. Create the vault at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`) and seed it with index notes (`Conducty Index`, `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`, `Ship Reports Index`) and accumulating notes (`Failure Patterns`, `Metrics`, `Prompt Log`)
 
 Restart Claude Code afterward to pick up the new skills. Open the vault in Obsidian to navigate the graph.
 
@@ -65,6 +65,8 @@ The MCP server exposes deterministic vault tools for the parts of Conducty that 
 - log prompt outcomes
 - append checkpoint health metrics to the active plan
 - write improvement kata notes
+- create pre-merge ship reports with verification evidence and residual risks
+- audit the vault graph for broken links, duplicate basenames, orphan notes, and missing closure signals
 - list recent vault notes
 
 Install the local Codex plugin:
@@ -171,7 +173,7 @@ Vault is **nested by category** — per-instance notes get a dedicated directory
 | Failure Patterns | `Accumulators/Failure Patterns.md` (accumulating) |
 | Metrics | `Accumulators/Metrics.md` (accumulating) |
 | Prompt Log | `Accumulators/Prompt Log.md` (accumulating) |
-| Indexes | `Conducty Index.md` (root) + `Indexes/{Plans,Designs,Context,Improvements} Index.md` |
+| Indexes | `Conducty Index.md` (root) + `Indexes/{Plans,Designs,Context,Improvements,Ship Reports} Index.md` |
 
 See `skills/conducty-obsidian/SKILL.md` for the complete vault contract: frontmatter, link conventions, index discipline, bootstrap.
 
@@ -422,7 +424,8 @@ Created by `install-claude-code.sh` at `$CONDUCTY_VAULT` (default `~/Obsidian/Co
 │   ├── Plans Index.md
 │   ├── Designs Index.md
 │   ├── Context Index.md
-│   └── Improvements Index.md
+│   ├── Improvements Index.md
+│   └── Ship Reports Index.md
 │
 ├── Accumulators/
 │   ├── Failure Patterns.md

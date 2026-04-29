@@ -15,6 +15,7 @@ const REQUIRED_VAULT_PATHS = [
   path.join("Indexes", "Designs Index.md"),
   path.join("Indexes", "Context Index.md"),
   path.join("Indexes", "Improvements Index.md"),
+  path.join("Indexes", "Ship Reports Index.md"),
   path.join("Accumulators", "Failure Patterns.md"),
   path.join("Accumulators", "Metrics.md"),
   path.join("Accumulators", "Prompt Log.md"),
@@ -331,6 +332,7 @@ function bootstrapVault(vaultPath) {
     "- [[Designs Index]]",
     "- [[Context Index]]",
     "- [[Improvements Index]]",
+    "- [[Ship Reports Index]]",
     "- [[Failure Patterns]]",
     "- [[Metrics]]",
     "- [[Prompt Log]]",
@@ -340,6 +342,7 @@ function bootstrapVault(vaultPath) {
   seed(path.join(vaultPath, "Indexes", "Designs Index.md"), indexNote("Designs Index", "Conducty design notes. Newest first."));
   seed(path.join(vaultPath, "Indexes", "Context Index.md"), indexNote("Context Index", "Per-project context summaries."));
   seed(path.join(vaultPath, "Indexes", "Improvements Index.md"), indexNote("Improvements Index", "Improvement kata entries. Newest first."));
+  seed(path.join(vaultPath, "Indexes", "Ship Reports Index.md"), indexNote("Ship Reports Index", "Pre-merge ship reports. Newest first."));
   seed(path.join(vaultPath, "Accumulators", "Failure Patterns.md"), accumulatorNote("failure-patterns", "Failure Patterns", "Newest first."));
   seed(path.join(vaultPath, "Accumulators", "Prompt Log.md"), accumulatorNote("prompt-log", "Prompt Log", "Newest first."));
   seed(path.join(vaultPath, "Accumulators", "Metrics.md"), [

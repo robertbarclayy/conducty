@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Conducty Codex",
     "shortDescription": "Plan, execute, verify, and improve with a Conducty vault.",
-    "longDescription": "Adds Conducty's orchestration loop to Codex through a skill plus a local MCP server. The server initializes the vault, writes plan notes, checks prompt quality, logs prompt outcomes, records checkpoints, and captures improvement kata notes so orchestration state becomes durable instead of living only in chat.",
+    "longDescription": "Adds Conducty's orchestration loop to Codex through a skill plus a local MCP server. The server initializes the vault, writes plan notes, checks prompt quality, logs prompt outcomes, records checkpoints, captures improvement kata notes, creates pre-merge ship reports, and audits vault graph health so orchestration state becomes durable instead of living only in chat.",
     "developerName": "Conducty",
     "category": "Productivity",
     "capabilities": [

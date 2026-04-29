@@ -87,6 +87,8 @@ The MCP server turns Conducty's state operations into deterministic tools:
 - `log_prompt_outcome`: prepend a terse entry to `Prompt Log`
 - `record_checkpoint`: append group health metrics to the plan note
 - `record_improvement`: write an improvement kata note and update `Improvements Index`
+- `create_ship_report`: write a green/yellow/red pre-merge verdict with verification evidence, residual risks, and next steps
+- `audit_vault_graph`: report broken wikilinks, duplicate basenames, orphan user notes, plans without ship reports, and plans without checkpoints
 
 ## Vault Location
 
@@ -106,7 +108,7 @@ From this directory:
 node scripts/smoke-test.mjs
 ```
 
-The smoke test creates a temporary vault, initializes the server over stdio, lists tools, creates a plan, checks prompt smells, logs a prompt outcome, records a checkpoint, writes an improvement note, and deletes the temporary vault.
+The smoke test creates a temporary vault, initializes the server over stdio, lists tools, creates a plan, checks prompt smells, logs a prompt outcome, records a checkpoint, writes an improvement note, writes a ship report, audits the vault graph, and deletes the temporary vault.
 
 ## Manual MCP Run
 

@@ -175,6 +175,39 @@ const TOOLS = [
       }
     },
     handler: recordImprovementTool
+  },
+  {
+    name: "create_ship_report",
+    description: "Write a pre-merge ship report with verdict, verification evidence, risks, and next steps.",
+    inputSchema: {
+      type: "object",
+      required: ["plan", "verdict"],
+      properties: {
+        vault: { type: "string" },
+        plan: { type: "string", description: "Plan title, wikilink basename, or path." },
+        topic: { type: "string", description: "Optional short title for the ship report." },
+        verdict: { type: "string", enum: ["green", "yellow", "red"] },
+        summary: { type: "string" },
+        verification: { type: "array", items: { type: "string" } },
+        evidence: { type: "array", items: { type: "string" } },
+        risks: { type: "array", items: { type: "string" } },
+        changedFiles: { type: "array", items: { type: "string" } },
+        nextSteps: { type: "array", items: { type: "string" } }
+      }
+    },
+    handler: createShipReportTool
+  },
+  {
+    name: "audit_vault_graph",
+    description: "Read the Conducty vault and report broken wikilinks, duplicate basenames, orphan notes, and plans missing closure signals.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        vault: { type: "string" },
+        limit: { type: "number", description: "Maximum examples to show per section. Defaults to 10." }
+      }
+    },
+    handler: auditVaultGraphTool
   }
 ];
 
@@ -216,6 +249,7 @@ function bootstrapVaultTool(args) {
     "- Indexes/Designs Index.md",
     "- Indexes/Context Index.md",
     "- Indexes/Improvements Index.md",
+    "- Indexes/Ship Reports Index.md",
     "- Accumulators/Failure Patterns.md",
     "- Accumulators/Metrics.md",
     "- Accumulators/Prompt Log.md"
@@ -521,6 +555,188 @@ function recordImprovementTool(args) {
   ].join("\n");
 }
 
+function createShipReportTool(args) {
+  requireString(args.plan, "plan");
+  requireString(args.verdict, "verdict");
+  const verdict = args.verdict.trim().toLowerCase();
+  if (!["green", "yellow", "red"].includes(verdict)) {
+    throw new Error("Ship report verdict must be one of: green, yellow, red.");
+  }
+
+  const vault = resolveVault(args);
+  bootstrapVault(vault.path);
+  const planPath = findPlanPath(vault.path, args.plan);
+  if (!planPath) {
+    throw new Error(`Plan not found: ${args.plan}`);
+  }
+
+  const now = timestamp();
+  const planName = path.basename(planPath, ".md");
+  const topic = safeTitle(args.topic || planName.replace(/^Plan \d{4}-\d{2}-\d{2} \d{4}\s*/, "") || "Ship Report");
+  const fileName = `Ship Report ${now.date} ${now.time} ${topic}.md`;
+  const reportPath = safeVaultPath(vault.path, path.join("Ship Reports", fileName));
+  const linkName = path.basename(fileName, ".md");
+  const summary = stringOr(args.summary, `Ship verdict for ${planName}.`);
+  const verification = toList(args.verification);
+  const evidence = toList(args.evidence);
+  const risks = toList(args.risks);
+  const changedFiles = toList(args.changedFiles);
+  const nextSteps = toList(args.nextSteps);
+
+  const content = [
+    "---",
+    "type: ship-report",
+    `date: ${now.date}`,
+    `time: ${now.time}`,
+    `verdict: ${verdict}`,
+    `plan: "${escapeYaml(planName)}"`,
+    "tags: [conducty, conducty/ship]",
+    "---",
+    "",
+    `# ${linkName}`,
+    "",
+    "## Verdict",
+    "",
+    verdict,
+    "",
+    "## Summary",
+    "",
+    summary,
+    "",
+    "## Plan",
+    "",
+    `- [[${planName}]]`,
+    "",
+    "## Verification",
+    "",
+    ...bulletList(verification.length ? verification : ["not recorded"]),
+    "",
+    "## Evidence",
+    "",
+    ...bulletList(evidence.length ? evidence : ["not recorded"]),
+    "",
+    "## Risks",
+    "",
+    ...bulletList(risks.length ? risks : ["none"]),
+    "",
+    "## Changed Files",
+    "",
+    ...bulletList(changedFiles.length ? changedFiles : ["not recorded"]),
+    "",
+    "## Next Steps",
+    "",
+    ...bulletList(nextSteps.length ? nextSteps : ["none"]),
+    "",
+    "## Related",
+    "",
+    "- Index: [[Ship Reports Index]]",
+    `- Plan: [[${planName}]]`,
+    "- Accumulates from: [[Metrics]], [[Prompt Log]]",
+    ""
+  ].join("\n");
+
+  fs.writeFileSync(reportPath, content, "utf8");
+  prependIndexLink(safeVaultPath(vault.path, path.join("Indexes", "Ship Reports Index.md")), `- [[${linkName}]]`);
+
+  return [
+    "# Ship Report Created",
+    "",
+    `Report: [[${linkName}]]`,
+    `Path: ${reportPath}`,
+    `Plan: [[${planName}]]`,
+    `Verdict: ${verdict}`
+  ].join("\n");
+}
+
+function auditVaultGraphTool(args) {
+  const vault = resolveVault(args);
+  const limit = Math.max(1, Math.min(100, Number(args?.limit) || 10));
+  if (!fs.existsSync(vault.path)) {
+    return [
+      "# Conducty Vault Audit",
+      "",
+      `Vault: ${vault.path}`,
+      "Verdict: missing vault",
+      "",
+      "Run `bootstrap_vault` before auditing the graph."
+    ].join("\n");
+  }
+
+  const notes = listMarkdownNotes(vault.path);
+  const basenameGroups = groupNotesByBasename(notes);
+  const byBasename = new Map([...basenameGroups].map(([basename, group]) => [basename, group[0]]));
+  const inbound = new Map(notes.map((note) => [path.basename(note.fullPath, ".md"), 0]));
+  const duplicateBasenames = [...basenameGroups]
+    .filter(([, group]) => group.length > 1)
+    .map(([basename, group]) => `${basename}: ${group.map((note) => note.relPath).join(", ")}`);
+  const brokenLinks = [];
+
+  for (const note of notes) {
+    for (const target of parseWikiLinks(note.text)) {
+      if (byBasename.has(target)) {
+        inbound.set(target, (inbound.get(target) || 0) + 1);
+      } else {
+        brokenLinks.push({ source: note.relPath, target });
+      }
+    }
+  }
+
+  const orphanNotes = notes
+    .filter((note) => isUserFacingNote(note.relPath))
+    .filter((note) => (inbound.get(path.basename(note.fullPath, ".md")) || 0) === 0)
+    .map((note) => note.relPath);
+
+  const shipReportTexts = notes
+    .filter((note) => note.relPath.startsWith(`Ship Reports${path.sep}`))
+    .map((note) => note.text);
+  const planNotes = notes.filter((note) => note.relPath.startsWith(`Plans${path.sep}`));
+  const plansWithoutShipReport = planNotes
+    .filter((note) => !shipReportTexts.some((text) => text.includes(`[[${path.basename(note.fullPath, ".md")}]]`)))
+    .map((note) => note.relPath);
+  const plansWithoutCheckpoint = planNotes
+    .filter((note) => !/### Group .+ Checkpoint/.test(note.text))
+    .map((note) => note.relPath);
+
+  const problemCount = brokenLinks.length + duplicateBasenames.length + orphanNotes.length + plansWithoutShipReport.length + plansWithoutCheckpoint.length;
+  const verdict = problemCount === 0 ? "clean" : "needs attention";
+
+  return [
+    "# Conducty Vault Audit",
+    "",
+    `Vault: ${vault.path}`,
+    `Verdict: ${verdict}`,
+    "",
+    "## Summary",
+    "",
+    `- Notes: ${notes.length}`,
+    `- Broken wikilinks: ${brokenLinks.length}`,
+    `- Duplicate basenames: ${duplicateBasenames.length}`,
+    `- Orphan user notes: ${orphanNotes.length}`,
+    `- Plans without ship reports: ${plansWithoutShipReport.length}`,
+    `- Plans without checkpoints: ${plansWithoutCheckpoint.length}`,
+    "",
+    "## Broken Wikilinks",
+    "",
+    ...exampleLines(brokenLinks.map((link) => `${link.source} -> [[${link.target}]]`), limit),
+    "",
+    "## Duplicate Basenames",
+    "",
+    ...exampleLines(duplicateBasenames, limit),
+    "",
+    "## Orphan User Notes",
+    "",
+    ...exampleLines(orphanNotes, limit),
+    "",
+    "## Plans Without Ship Reports",
+    "",
+    ...exampleLines(plansWithoutShipReport, limit),
+    "",
+    "## Plans Without Checkpoints",
+    "",
+    ...exampleLines(plansWithoutCheckpoint, limit)
+  ].join("\n");
+}
+
 function bootstrapVault(vaultPath) {
   for (const dir of ["", "Indexes", "Accumulators", "Plans", "Designs", "Improvements", "Code Reviews", "Ship Reports", "Context"]) {
     fs.mkdirSync(path.join(vaultPath, dir), { recursive: true });
@@ -542,6 +758,7 @@ function bootstrapVault(vaultPath) {
     "- [[Designs Index]]",
     "- [[Context Index]]",
     "- [[Improvements Index]]",
+    "- [[Ship Reports Index]]",
     "",
     "## Accumulating",
     "",
@@ -555,6 +772,7 @@ function bootstrapVault(vaultPath) {
   seedNote(path.join(vaultPath, "Indexes", "Designs Index.md"), indexNote("Designs Index", "Conducty design notes. Newest first."));
   seedNote(path.join(vaultPath, "Indexes", "Context Index.md"), indexNote("Context Index", "Per-project context summaries."));
   seedNote(path.join(vaultPath, "Indexes", "Improvements Index.md"), indexNote("Improvements Index", "Improvement kata entries. Newest first."));
+  seedNote(path.join(vaultPath, "Indexes", "Ship Reports Index.md"), indexNote("Ship Reports Index", "Pre-merge ship reports. Newest first."));
   seedNote(path.join(vaultPath, "Accumulators", "Failure Patterns.md"), accumulatorNote("failure-patterns", "Failure Patterns", "Newest first."));
   seedNote(path.join(vaultPath, "Accumulators", "Metrics.md"), [
     "---",
@@ -810,6 +1028,79 @@ function findPlanPath(vaultPath, plan) {
   }
 
   return null;
+}
+
+function listMarkdownNotes(vaultPath) {
+  const notes = [];
+  const visit = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name.startsWith(".")) continue;
+        visit(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith(".md")) {
+        notes.push({
+          fullPath,
+          relPath: path.relative(vaultPath, fullPath),
+          text: fs.readFileSync(fullPath, "utf8")
+        });
+      }
+    }
+  };
+
+  for (const root of ["Conducty Index.md", "Indexes", "Accumulators", "Plans", "Designs", "Improvements", "Code Reviews", "Ship Reports", "Context"]) {
+    const fullPath = path.join(vaultPath, root);
+    if (!fs.existsSync(fullPath)) continue;
+    const stat = fs.statSync(fullPath);
+    if (stat.isDirectory()) {
+      visit(fullPath);
+    } else if (stat.isFile() && fullPath.endsWith(".md")) {
+      notes.push({
+        fullPath,
+        relPath: path.relative(vaultPath, fullPath),
+        text: fs.readFileSync(fullPath, "utf8")
+      });
+    }
+  }
+  notes.sort((a, b) => a.relPath.localeCompare(b.relPath));
+  return notes;
+}
+
+function groupNotesByBasename(notes) {
+  const groups = new Map();
+  for (const note of notes) {
+    const basename = path.basename(note.fullPath, ".md");
+    const group = groups.get(basename) || [];
+    group.push(note);
+    groups.set(basename, group);
+  }
+  return groups;
+}
+
+function parseWikiLinks(text) {
+  const links = [];
+  const pattern = /\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]/g;
+  let match;
+  while ((match = pattern.exec(text))) {
+    const target = path.basename(match[1].trim(), ".md");
+    if (target) links.push(target);
+  }
+  return links;
+}
+
+function isUserFacingNote(relativePath) {
+  return !(
+    relativePath === "Conducty Index.md" ||
+    relativePath.startsWith(`Indexes${path.sep}`) ||
+    relativePath.startsWith(`Accumulators${path.sep}`)
+  );
+}
+
+function exampleLines(items, limit) {
+  if (!items.length) return ["- none"];
+  const visible = items.slice(0, limit).map((item) => `- ${item}`);
+  const hidden = items.length - visible.length;
+  return hidden > 0 ? [...visible, `- ...and ${hidden} more`] : visible;
 }
 
 function timestamp() {
