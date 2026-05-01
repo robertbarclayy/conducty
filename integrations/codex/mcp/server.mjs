@@ -1170,11 +1170,13 @@ function escapeYaml(value) {
 }
 
 const inputState = {
-  buffer: Buffer.alloc(0)
+  pending: ""
 };
 
+process.stdin.setEncoding("utf8");
+
 process.stdin.on("data", (chunk) => {
-  inputState.buffer = Buffer.concat([inputState.buffer, chunk]);
+  inputState.pending += chunk;
   drainInput();
 });
 
@@ -1183,29 +1185,17 @@ process.stdin.on("error", (error) => {
 });
 
 function drainInput() {
-  while (inputState.buffer.length > 0) {
-    const headerEnd = inputState.buffer.indexOf("\r\n\r\n");
-    if (headerEnd === -1) return;
+  let newlineIndex;
+  while ((newlineIndex = inputState.pending.indexOf("\n")) !== -1) {
+    const line = inputState.pending.slice(0, newlineIndex);
+    inputState.pending = inputState.pending.slice(newlineIndex + 1);
 
-    const header = inputState.buffer.slice(0, headerEnd).toString("utf8");
-    const match = /Content-Length:\s*(\d+)/i.exec(header);
-    if (!match) {
-      console.error(`Missing Content-Length header: ${header}`);
-      inputState.buffer = Buffer.alloc(0);
-      return;
-    }
-
-    const length = Number(match[1]);
-    const bodyStart = headerEnd + 4;
-    const bodyEnd = bodyStart + length;
-    if (inputState.buffer.length < bodyEnd) return;
-
-    const body = inputState.buffer.slice(bodyStart, bodyEnd).toString("utf8");
-    inputState.buffer = inputState.buffer.slice(bodyEnd);
+    // Ignore empty lines (bare \n) — do not emit a parse error.
+    if (line.length === 0) continue;
 
     let message;
     try {
-      message = JSON.parse(body);
+      message = JSON.parse(line);
     } catch (error) {
       sendError(null, -32700, `Parse error: ${error instanceof Error ? error.message : String(error)}`);
       continue;
@@ -1278,6 +1268,5 @@ function sendError(id, code, message) {
 }
 
 function writeMessage(message) {
-  const json = JSON.stringify(message);
-  process.stdout.write(`Content-Length: ${Buffer.byteLength(json, "utf8")}\r\n\r\n${json}`);
+  process.stdout.write(JSON.stringify(message) + "\n");
 }

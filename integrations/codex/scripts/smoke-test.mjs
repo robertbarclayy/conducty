@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,7 +19,7 @@ const child = spawn(process.execPath, [serverPath], {
 });
 
 let nextId = 1;
-let outputBuffer = Buffer.alloc(0);
+let outputBuffer = "";
 let stderr = "";
 const pending = new Map();
 
@@ -26,28 +27,20 @@ child.stderr.on("data", (chunk) => {
   stderr += chunk.toString("utf8");
 });
 
+child.stdout.setEncoding("utf8");
 child.stdout.on("data", (chunk) => {
-  outputBuffer = Buffer.concat([outputBuffer, chunk]);
+  outputBuffer += chunk;
   drainOutput();
 });
 
 function drainOutput() {
-  while (outputBuffer.length > 0) {
-    const headerEnd = outputBuffer.indexOf("\r\n\r\n");
-    if (headerEnd === -1) return;
+  let newlineIndex;
+  while ((newlineIndex = outputBuffer.indexOf("\n")) !== -1) {
+    const line = outputBuffer.slice(0, newlineIndex);
+    outputBuffer = outputBuffer.slice(newlineIndex + 1);
+    if (line.length === 0) continue;
 
-    const header = outputBuffer.slice(0, headerEnd).toString("utf8");
-    const lengthMatch = /Content-Length:\s*(\d+)/i.exec(header);
-    if (!lengthMatch) throw new Error(`Missing Content-Length: ${header}`);
-
-    const length = Number(lengthMatch[1]);
-    const bodyStart = headerEnd + 4;
-    const bodyEnd = bodyStart + length;
-    if (outputBuffer.length < bodyEnd) return;
-
-    const body = outputBuffer.slice(bodyStart, bodyEnd).toString("utf8");
-    outputBuffer = outputBuffer.slice(bodyEnd);
-    const message = JSON.parse(body);
+    const message = JSON.parse(line);
     const waiter = pending.get(message.id);
     if (waiter) {
       pending.delete(message.id);
@@ -58,18 +51,20 @@ function drainOutput() {
 }
 
 function writeMessage(message) {
-  const json = JSON.stringify(message);
-  child.stdin.write(`Content-Length: ${Buffer.byteLength(json, "utf8")}\r\n\r\n${json}`);
+  child.stdin.write(JSON.stringify(message) + "\n");
 }
 
 function request(method, params = {}) {
   const id = nextId++;
   writeMessage({ jsonrpc: "2.0", id, method, params });
+  return waitFor(id, method);
+}
 
+function waitFor(id, label) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       pending.delete(id);
-      reject(new Error(`Timed out waiting for ${method}`));
+      reject(new Error(`Timed out waiting for ${label}`));
     }, 5000);
 
     pending.set(id, {
@@ -249,13 +244,52 @@ try {
     throw new Error(`audit_vault_graph expected a clean vault, got:\n${auditText}`);
   }
 
-  child.kill();
-  fs.rmSync(tempVault, { recursive: true, force: true });
+  // Coalesced-write regression: send two requests in a single stdin.write, prove the
+  // line-splitter handles them as separate messages and matches responses by id, in
+  // the order they were issued.
+  const coalescedOrder = [];
+  const onCoalescedData = (chunk) => {
+    const text = typeof chunk === "string" ? chunk : chunk.toString("utf8");
+    for (const line of text.split("\n")) {
+      if (!line.length) continue;
+      try {
+        const parsed = JSON.parse(line);
+        if (parsed && typeof parsed === "object" && "id" in parsed) {
+          coalescedOrder.push(parsed.id);
+        }
+      } catch {
+        // ignore — main drainOutput owns parse-error reporting
+      }
+    }
+  };
+  child.stdout.on("data", onCoalescedData);
+
+  const idA = nextId++;
+  const idB = nextId++;
+  const reqA = { jsonrpc: "2.0", id: idA, method: "ping", params: {} };
+  const reqB = { jsonrpc: "2.0", id: idB, method: "ping", params: {} };
+  const promiseA = waitFor(idA, "ping#A");
+  const promiseB = waitFor(idB, "ping#B");
+  child.stdin.write(JSON.stringify(reqA) + "\n" + JSON.stringify(reqB) + "\n");
+  await Promise.all([promiseA, promiseB]);
+  child.stdout.off("data", onCoalescedData);
+
+  const observed = coalescedOrder.filter((id) => id === idA || id === idB);
+  if (observed.length !== 2 || observed[0] !== idA || observed[1] !== idB) {
+    throw new Error(`Coalesced write: expected response order [${idA}, ${idB}], got [${observed.join(", ")}]`);
+  }
+
   console.log("conducty-codex MCP smoke test passed");
 } catch (error) {
-  child.kill();
-  fs.rmSync(tempVault, { recursive: true, force: true });
   console.error(error instanceof Error ? error.message : String(error));
   if (stderr.trim()) console.error(stderr.trim());
   process.exitCode = 1;
+} finally {
+  child.kill();
+  try {
+    await once(child, "exit");
+  } catch {
+    // ignore — we just want the handles released
+  }
+  fs.rmSync(tempVault, { recursive: true, force: true });
 }

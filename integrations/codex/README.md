@@ -106,9 +106,10 @@ From this directory:
 
 ```bash
 node scripts/smoke-test.mjs
+node scripts/probe-ndjson.mjs
 ```
 
-The smoke test creates a temporary vault, initializes the server over stdio, lists tools, creates a plan, checks prompt smells, logs a prompt outcome, records a checkpoint, writes an improvement note, writes a ship report, audits the vault graph, and deletes the temporary vault.
+The smoke test creates a temporary vault, initializes the server over stdio, lists tools, creates a plan, checks prompt smells, logs a prompt outcome, records a checkpoint, writes an improvement note, writes a ship report, audits the vault graph, and deletes the temporary vault. The NDJSON probe drives a minimal `initialize` -> `tools/list` -> `tools/call` flow and proves legal callers still work after framing/path changes.
 
 ## Manual MCP Run
 
