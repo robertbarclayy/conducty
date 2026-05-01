@@ -80,6 +80,12 @@ function waitFor(id, label) {
   });
 }
 
+function extractWikilink(text, label) {
+  const match = /\[\[([^\]]+)\]\]/.exec(text);
+  if (!match) throw new Error(`${label} did not include a wikilink: ${text}`);
+  return match[1];
+}
+
 try {
   const init = await request("initialize", {
     protocolVersion: "2024-11-05",
@@ -242,6 +248,105 @@ try {
   const auditText = audit.content?.[0]?.text || "";
   if (!auditText.includes("Verdict: clean")) {
     throw new Error(`audit_vault_graph expected a clean vault, got:\n${auditText}`);
+  }
+
+  const collisionPlanA = await request("tools/call", {
+    name: "create_plan",
+    arguments: {
+      vault: tempVault,
+      topic: "Collision Test",
+      goal: "Verify duplicate plan names are not overwritten."
+    }
+  });
+  const collisionPlanB = await request("tools/call", {
+    name: "create_plan",
+    arguments: {
+      vault: tempVault,
+      topic: "Collision Test",
+      goal: "Verify duplicate plan names are not overwritten."
+    }
+  });
+  const collisionPlanLinkA = extractWikilink(collisionPlanA.content?.[0]?.text || "", "first collision plan");
+  const collisionPlanLinkB = extractWikilink(collisionPlanB.content?.[0]?.text || "", "second collision plan");
+  if (collisionPlanLinkA === collisionPlanLinkB) {
+    throw new Error(`create_plan reused a note name: ${collisionPlanLinkA}`);
+  }
+
+  const collisionImprovementA = await request("tools/call", {
+    name: "record_improvement",
+    arguments: {
+      vault: tempVault,
+      target: "Avoid improvement filename collisions",
+      actual: "First duplicate-minute improvement",
+      learned: "Unique names preserve both notes",
+      nextExperiment: "Write another improvement immediately"
+    }
+  });
+  const collisionImprovementB = await request("tools/call", {
+    name: "record_improvement",
+    arguments: {
+      vault: tempVault,
+      target: "Avoid improvement filename collisions",
+      actual: "Second duplicate-minute improvement",
+      learned: "Unique names preserve both notes",
+      nextExperiment: "Keep the suffix stable"
+    }
+  });
+  const collisionImprovementLinkA = extractWikilink(collisionImprovementA.content?.[0]?.text || "", "first collision improvement");
+  const collisionImprovementLinkB = extractWikilink(collisionImprovementB.content?.[0]?.text || "", "second collision improvement");
+  if (collisionImprovementLinkA === collisionImprovementLinkB) {
+    throw new Error(`record_improvement reused a note name: ${collisionImprovementLinkA}`);
+  }
+
+  const collisionShipA = await request("tools/call", {
+    name: "create_ship_report",
+    arguments: {
+      vault: tempVault,
+      plan: plans[0],
+      topic: "Collision Ship",
+      verdict: "green"
+    }
+  });
+  const collisionShipB = await request("tools/call", {
+    name: "create_ship_report",
+    arguments: {
+      vault: tempVault,
+      plan: plans[0],
+      topic: "Collision Ship",
+      verdict: "green"
+    }
+  });
+  const collisionShipLinkA = extractWikilink(collisionShipA.content?.[0]?.text || "", "first collision ship report");
+  const collisionShipLinkB = extractWikilink(collisionShipB.content?.[0]?.text || "", "second collision ship report");
+  if (collisionShipLinkA === collisionShipLinkB) {
+    throw new Error(`create_ship_report reused a note name: ${collisionShipLinkA}`);
+  }
+
+  const cappedAudit = await request("tools/call", {
+    name: "audit_vault_graph",
+    arguments: {
+      vault: tempVault,
+      maxNotes: 1
+    }
+  });
+  const cappedAuditText = cappedAudit.content?.[0]?.text || "";
+  if (!cappedAuditText.includes("Scan limit reached: yes")) {
+    throw new Error(`audit_vault_graph did not report maxNotes truncation:\n${cappedAuditText}`);
+  }
+
+  fs.mkdirSync(path.join(tempVault, "Context"), { recursive: true });
+  fs.writeFileSync(path.join(tempVault, "Context", "Large Note.md"), "x".repeat(2048), "utf8");
+  const largeNoteAudit = await request("tools/call", {
+    name: "audit_vault_graph",
+    arguments: {
+      vault: tempVault,
+      maxBytesPerNote: 1024
+    }
+  });
+  const largeNoteAuditText = largeNoteAudit.content?.[0]?.text || "";
+  const largeSkippedMatch = /Large notes skipped: (\d+)/.exec(largeNoteAuditText);
+  if (!largeSkippedMatch || Number(largeSkippedMatch[1]) < 1) {
+    throw new Error(`audit_vault_graph did not report large-note skipping:\n${largeNoteAuditText}`);
   }
 
   // Coalesced-write regression: send two requests in a single stdin.write, prove the

@@ -204,7 +204,9 @@ const TOOLS = [
       type: "object",
       properties: {
         vault: { type: "string" },
-        limit: { type: "number", description: "Maximum examples to show per section. Defaults to 10." }
+        limit: { type: "number", description: "Maximum examples to show per section. Defaults to 10." },
+        maxNotes: { type: "number", description: "Maximum notes to scan. Defaults to 1000." },
+        maxBytesPerNote: { type: "number", description: "Maximum bytes to read per note. Defaults to 1048576." }
       }
     },
     handler: auditVaultGraphTool
@@ -349,9 +351,7 @@ function createPlanTool(args) {
     appetite
   });
 
-  const fileName = `Plan ${now.date} ${now.time} ${topic}.md`;
-  const planPath = safeVaultPath(vault.path, path.join("Plans", fileName));
-  const linkName = path.basename(fileName, ".md");
+  const { filePath: planPath, linkName } = uniqueVaultNote(vault.path, "Plans", `Plan ${now.date} ${now.time} ${topic}`);
   const content = renderPlan({
     date: now.date,
     time: now.time,
@@ -505,9 +505,7 @@ function recordImprovementTool(args) {
   const vault = resolveVault(args);
   bootstrapVault(vault.path);
   const now = timestamp();
-  const fileName = `Improvement ${now.date} ${now.time}.md`;
-  const improvementPath = safeVaultPath(vault.path, path.join("Improvements", fileName));
-  const linkName = path.basename(fileName, ".md");
+  const { filePath: improvementPath, linkName } = uniqueVaultNote(vault.path, "Improvements", `Improvement ${now.date} ${now.time}`);
   const planLink = args.plan ? wikilink(args.plan) : "none";
   const content = [
     "---",
@@ -573,9 +571,7 @@ function createShipReportTool(args) {
   const now = timestamp();
   const planName = path.basename(planPath, ".md");
   const topic = safeTitle(args.topic || planName.replace(/^Plan \d{4}-\d{2}-\d{2} \d{4}\s*/, "") || "Ship Report");
-  const fileName = `Ship Report ${now.date} ${now.time} ${topic}.md`;
-  const reportPath = safeVaultPath(vault.path, path.join("Ship Reports", fileName));
-  const linkName = path.basename(fileName, ".md");
+  const { filePath: reportPath, linkName } = uniqueVaultNote(vault.path, "Ship Reports", `Ship Report ${now.date} ${now.time} ${topic}`);
   const summary = stringOr(args.summary, `Ship verdict for ${planName}.`);
   const verification = toList(args.verification);
   const evidence = toList(args.evidence);
@@ -651,6 +647,8 @@ function createShipReportTool(args) {
 function auditVaultGraphTool(args) {
   const vault = resolveVault(args);
   const limit = Math.max(1, Math.min(100, Number(args?.limit) || 10));
+  const maxNotes = Math.max(1, Math.min(10000, Number(args?.maxNotes) || 1000));
+  const maxBytesPerNote = Math.max(1024, Math.min(10 * 1024 * 1024, Number(args?.maxBytesPerNote) || 1024 * 1024));
   if (!fs.existsSync(vault.path)) {
     return [
       "# Conducty Vault Audit",
@@ -662,7 +660,7 @@ function auditVaultGraphTool(args) {
     ].join("\n");
   }
 
-  const notes = listMarkdownNotes(vault.path);
+  const { notes, truncated, skippedLargeNotes } = listMarkdownNotes(vault.path, { maxNotes, maxBytesPerNote });
   const basenameGroups = groupNotesByBasename(notes);
   const byBasename = new Map([...basenameGroups].map(([basename, group]) => [basename, group[0]]));
   const inbound = new Map(notes.map((note) => [path.basename(note.fullPath, ".md"), 0]));
@@ -709,6 +707,8 @@ function auditVaultGraphTool(args) {
     "## Summary",
     "",
     `- Notes: ${notes.length}`,
+    `- Scan limit reached: ${truncated ? "yes" : "no"}`,
+    `- Large notes skipped: ${skippedLargeNotes}`,
     `- Broken wikilinks: ${brokenLinks.length}`,
     `- Duplicate basenames: ${duplicateBasenames.length}`,
     `- Orphan user notes: ${orphanNotes.length}`,
@@ -1041,15 +1041,28 @@ function findPlanPath(vaultPath, plan) {
   return null;
 }
 
-function listMarkdownNotes(vaultPath) {
+function listMarkdownNotes(vaultPath, options = {}) {
+  const maxNotes = Math.max(1, Number(options.maxNotes) || 1000);
+  const maxBytesPerNote = Math.max(1024, Number(options.maxBytesPerNote) || 1024 * 1024);
   const notes = [];
+  let truncated = false;
+  let skippedLargeNotes = 0;
   const visit = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (notes.length >= maxNotes) {
+        truncated = true;
+        return;
+      }
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         if (entry.name.startsWith(".")) continue;
         visit(fullPath);
       } else if (entry.isFile() && entry.name.endsWith(".md")) {
+        const stat = fs.statSync(fullPath);
+        if (stat.size > maxBytesPerNote) {
+          skippedLargeNotes += 1;
+          continue;
+        }
         notes.push({
           fullPath,
           relPath: path.relative(vaultPath, fullPath),
@@ -1066,6 +1079,14 @@ function listMarkdownNotes(vaultPath) {
     if (stat.isDirectory()) {
       visit(fullPath);
     } else if (stat.isFile() && fullPath.endsWith(".md")) {
+      if (notes.length >= maxNotes) {
+        truncated = true;
+        continue;
+      }
+      if (stat.size > maxBytesPerNote) {
+        skippedLargeNotes += 1;
+        continue;
+      }
       notes.push({
         fullPath,
         relPath: path.relative(vaultPath, fullPath),
@@ -1074,7 +1095,7 @@ function listMarkdownNotes(vaultPath) {
     }
   }
   notes.sort((a, b) => a.relPath.localeCompare(b.relPath));
-  return notes;
+  return { notes, truncated, skippedLargeNotes };
 }
 
 function groupNotesByBasename(notes) {
@@ -1131,6 +1152,31 @@ function safeTitle(value) {
   return title || "Untitled";
 }
 
+function uniqueVaultNote(vaultPath, dir, basename) {
+  const safeBasename = safeTitle(basename);
+  for (let index = 1; index <= 1000; index += 1) {
+    const suffix = index === 1 ? "" : ` ${index}`;
+    const fileName = `${safeBasename}${suffix}.md`;
+    let filePath;
+    try {
+      filePath = safeVaultPath(vaultPath, path.join(dir, fileName));
+    } catch (error) {
+      if (/symlink/i.test(error instanceof Error ? error.message : String(error))) {
+        continue;
+      }
+      throw error;
+    }
+    if (!pathExistsOrSymlink(filePath)) {
+      return {
+        fileName,
+        filePath,
+        linkName: path.basename(fileName, ".md")
+      };
+    }
+  }
+  throw new Error(`Could not allocate unique note path for ${dir}/${safeBasename}.md`);
+}
+
 function summarizeGoal(goal) {
   return String(goal)
     .replace(/\s+/g, " ")
@@ -1167,17 +1213,16 @@ function assertInsideVault(vaultRoot, candidate) {
 
   const resolvedCandidate = path.resolve(candidate);
 
-  // Reject if the candidate itself is a symlink. Use lstat so we don't follow.
-  if (fs.existsSync(resolvedCandidate)) {
-    let stat;
-    try {
-      stat = fs.lstatSync(resolvedCandidate);
-    } catch {
-      stat = null;
-    }
-    if (stat && stat.isSymbolicLink()) {
-      throw new Error(`Refusing to write through symlink: ${candidate}`);
-    }
+  // Reject if the candidate itself is a symlink. Use lstat so we don't follow,
+  // and do not gate with existsSync: broken symlinks return false there.
+  let candidateStat = null;
+  try {
+    candidateStat = fs.lstatSync(resolvedCandidate);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  if (candidateStat?.isSymbolicLink()) {
+    throw new Error(`Refusing to write through symlink: ${candidate}`);
   }
 
   // Walk up to the nearest existing ancestor so we can realpath it. The tail
@@ -1203,6 +1248,16 @@ function assertInsideVault(vaultRoot, candidate) {
   if (rel === "") return;
   if (rel.startsWith("..") || path.isAbsolute(rel)) {
     throw new Error(`Path escapes vault: ${candidate}`);
+  }
+}
+
+function pathExistsOrSymlink(filePath) {
+  try {
+    fs.lstatSync(filePath);
+    return true;
+  } catch (error) {
+    if (error?.code === "ENOENT") return false;
+    throw error;
   }
 }
 

@@ -152,6 +152,15 @@ function isSymlinkPrivilegeError(error) {
   return ["EPERM", "EACCES", "ENOSYS"].includes(error?.code);
 }
 
+function timestampForMinuteOffset(offset) {
+  const now = new Date(Date.now() + offset * 60 * 1000);
+  const pad = (n) => String(n).padStart(2, "0");
+  return {
+    date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+    time: `${pad(now.getHours())}${pad(now.getMinutes())}`
+  };
+}
+
 // === Scenario 1: preexisting symlink inside vault must NOT be written. ===
 
 async function scenarioSymlinkReject() {
@@ -201,6 +210,30 @@ async function scenarioSymlinkReject() {
     assert(
       !fs.existsSync(outsideTarget),
       `symlink target was written to ${outsideTarget} — fix did not hold`
+    );
+
+    // New-note writers must also treat broken symlinks as occupied. Plant
+    // candidate create_plan names around the current minute so the test stays
+    // stable across a minute boundary.
+    for (const offset of [-1, 0, 1]) {
+      const stamp = timestampForMinuteOffset(offset);
+      const collisionPath = path.join(vault, "Plans", `Plan ${stamp.date} ${stamp.time} Symlink Collision.md`);
+      if (!fs.existsSync(collisionPath)) {
+        fs.symlinkSync(outsideTarget, collisionPath, "file");
+      }
+    }
+    const plan = await client.request("tools/call", {
+      name: "create_plan",
+      arguments: {
+        vault,
+        topic: "Symlink Collision",
+        goal: "Verify new note creation does not write through a broken symlink."
+      }
+    });
+    assert(!plan.error, `create_plan errored while avoiding symlink collision: ${plan.error?.message}`);
+    assert(
+      !fs.existsSync(outsideTarget),
+      `create_plan wrote through a broken symlink to ${outsideTarget}`
     );
 
     console.log("path-safety scenario 1 passed: preexisting symlink rejected, outside target untouched");

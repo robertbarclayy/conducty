@@ -201,13 +201,22 @@ function updateCodexConfig(filePath, marketplace, marketplaceRoot) {
 }
 
 function upsertTomlTable(config, header, body) {
-  const block = `${header}\n${body.trimEnd()}\n`;
-  const escaped = escapeRegExp(header);
-  const pattern = new RegExp(`${escaped}\\n[\\s\\S]*?(?=\\n\\[|$)`);
-  if (pattern.test(config)) {
-    return config.replace(pattern, block.trimEnd());
+  const normalized = config.replace(/\r\n/g, "\n");
+  const lines = normalized.length ? normalized.split("\n") : [];
+  const blockLines = [header, ...body.trimEnd().split("\n")];
+  const start = lines.findIndex((line) => line.trim() === header);
+
+  if (start !== -1) {
+    let end = start + 1;
+    while (end < lines.length && !/^\s*\[.+\]\s*$/.test(lines[end])) {
+      end += 1;
+    }
+    lines.splice(start, end - start, ...blockLines);
+    return lines.join("\n");
   }
-  return `${config.trimEnd()}\n\n${block}`;
+
+  const prefix = normalized.trimEnd();
+  return `${prefix}${prefix ? "\n\n" : ""}${blockLines.join("\n")}`;
 }
 
 function writeJsonNoBom(filePath, value) {
@@ -216,10 +225,6 @@ function writeJsonNoBom(filePath, value) {
 
 function stripBom(value) {
   return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
-}
-
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function requireValue(argv, index, flag) {
