@@ -135,6 +135,23 @@ function assert(cond, msg) {
   if (!cond) throw new Error(`Assertion failed: ${msg}`);
 }
 
+function tryCreateSymlink(target, linkPath, type, scenario) {
+  try {
+    fs.symlinkSync(target, linkPath, type);
+    return true;
+  } catch (error) {
+    if (isSymlinkPrivilegeError(error)) {
+      console.log(`${scenario} skipped: symlink creation not permitted (${error.code})`);
+      return false;
+    }
+    throw error;
+  }
+}
+
+function isSymlinkPrivilegeError(error) {
+  return ["EPERM", "EACCES", "ENOSYS"].includes(error?.code);
+}
+
 // === Scenario 1: preexisting symlink inside vault must NOT be written. ===
 
 async function scenarioSymlinkReject() {
@@ -156,7 +173,7 @@ async function scenarioSymlinkReject() {
     // we want to prove the write would create it (pre-fix behavior) but the
     // post-fix server refuses.
     const symlinkPath = path.join(vault, "Plans", "Plan 2099-01-01 0000 Escape.md");
-    fs.symlinkSync(outsideTarget, symlinkPath);
+    if (!tryCreateSymlink(outsideTarget, symlinkPath, "file", "path-safety scenario 1")) return;
     assert(!fs.existsSync(outsideTarget), "precondition: outside target must not exist yet");
 
     // record_checkpoint walks through findPlanPath -> writeFileSync. With the
@@ -200,7 +217,11 @@ async function scenarioSymlinkedVaultRoot() {
   const realVault = path.join(root, "real-vault");
   const linkedVault = path.join(root, "linked-vault");
   fs.mkdirSync(realVault, { recursive: true });
-  fs.symlinkSync(realVault, linkedVault);
+  const linkType = process.platform === "win32" ? "junction" : "dir";
+  if (!tryCreateSymlink(realVault, linkedVault, linkType, "path-safety scenario 2")) {
+    fs.rmSync(root, { recursive: true, force: true });
+    return;
+  }
 
   const client = makeClient({ CONDUCTY_VAULT: linkedVault });
   try {
