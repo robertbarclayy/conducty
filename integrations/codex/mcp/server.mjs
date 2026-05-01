@@ -1007,12 +1007,21 @@ function findPlanPath(vaultPath, plan) {
   const raw = String(plan || "").trim().replace(/^\[\[/, "").replace(/\]\]$/, "");
   if (!raw) return null;
 
+  // Soft-null for both symlink-reject and escape-reject — findPlanPath callers
+  // treat a missing plan as a normal "not found" condition rather than an
+  // error, and we never want to hand a symlinked path to a write site.
+  const checkContainment = (candidate) => {
+    try {
+      assertInsideVault(vaultPath, candidate);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   if (fs.existsSync(raw) && fs.statSync(raw).isFile()) {
     const resolved = path.resolve(raw);
-    const vaultRoot = path.resolve(vaultPath);
-    if (resolved !== vaultRoot && !resolved.startsWith(vaultRoot + path.sep)) {
-      throw new Error(`Refusing to edit a plan outside the vault: ${resolved}`);
-    }
+    if (!checkContainment(resolved)) return null;
     return resolved;
   }
 
@@ -1023,7 +1032,9 @@ function findPlanPath(vaultPath, plan) {
   for (const file of fs.readdirSync(plansDir)) {
     if (!file.endsWith(".md")) continue;
     if (path.basename(file, ".md") === basename || file === raw || file === `${raw}.md`) {
-      return path.join(plansDir, file);
+      const candidate = path.join(plansDir, file);
+      if (!checkContainment(candidate)) return null;
+      return candidate;
     }
   }
 
@@ -1132,10 +1143,67 @@ function summarizeGoal(goal) {
 function safeVaultPath(vaultPath, relativePath) {
   const base = path.resolve(vaultPath);
   const target = path.resolve(base, relativePath);
-  if (target !== base && !target.startsWith(base + path.sep)) {
-    throw new Error(`Refusing path outside vault: ${relativePath}`);
-  }
+  assertInsideVault(base, target);
   return target;
+}
+
+// Realpath-aware containment check. Resolves the vault root via
+// fs.realpathSync.native, then walks up the candidate to its nearest existing
+// ancestor (handling the case where we're about to create a new file/dir),
+// realpaths that ancestor, re-joins the unresolved tail, and finally tests
+// containment against the realpathed root. If the candidate itself exists and
+// is a symlink, refuse — every write site would otherwise dereference the
+// symlink and clobber whatever the target points at. Throws on escape; returns
+// void on legal paths. Callers that want a soft-null on failure (e.g.
+// findPlanPath) wrap in try/catch — the helper itself does not know.
+function assertInsideVault(vaultRoot, candidate) {
+  const resolvedRoot = path.resolve(vaultRoot);
+  let realRoot;
+  try {
+    realRoot = fs.realpathSync.native(resolvedRoot);
+  } catch {
+    realRoot = resolvedRoot;
+  }
+
+  const resolvedCandidate = path.resolve(candidate);
+
+  // Reject if the candidate itself is a symlink. Use lstat so we don't follow.
+  if (fs.existsSync(resolvedCandidate)) {
+    let stat;
+    try {
+      stat = fs.lstatSync(resolvedCandidate);
+    } catch {
+      stat = null;
+    }
+    if (stat && stat.isSymbolicLink()) {
+      throw new Error(`Refusing to write through symlink: ${candidate}`);
+    }
+  }
+
+  // Walk up to the nearest existing ancestor so we can realpath it. The tail
+  // (parts that don't yet exist) is re-joined as a literal path segment.
+  let ancestor = resolvedCandidate;
+  const tail = [];
+  while (!fs.existsSync(ancestor)) {
+    const parent = path.dirname(ancestor);
+    if (parent === ancestor) break;
+    tail.unshift(path.basename(ancestor));
+    ancestor = parent;
+  }
+
+  let realAncestor;
+  try {
+    realAncestor = fs.realpathSync.native(ancestor);
+  } catch {
+    realAncestor = ancestor;
+  }
+  const realCandidate = tail.length ? path.join(realAncestor, ...tail) : realAncestor;
+
+  const rel = path.relative(realRoot, realCandidate);
+  if (rel === "") return;
+  if (rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new Error(`Path escapes vault: ${candidate}`);
+  }
 }
 
 function wikilink(value) {
