@@ -12,7 +12,9 @@ alwaysApply: true
 
 Conducty follows a per-plan cycle: **Shape → Plan → Trace → Execute → Verify → Improve**. Each phase has a dedicated skill. You are always somewhere in this cycle. Multiple plans per day are normal — each plan note is timestamped (`Plan YYYY-MM-DD HHmm [Topic].md`).
 
-All Conducty state — plans, designs, context, improvements, failure patterns, metrics, prompt logs — lives in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). Read [[conducty-obsidian]] before any state I/O.
+Use [[conducty-kernel]] when state, risk, next-skill routing, contract gaps, invariant violations, or required evidence are unclear. The kernel owns the state machine, skill router, contracts, risk score, invariant gate, evidence object, and policy-update loop.
+
+All Conducty state — plans, designs, context, kernel contracts, improvements, failure patterns, metrics, prompt logs — lives in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). Read [[conducty-obsidian]] before any state I/O.
 
 Before starting work, list the vault for the latest `Plans/Plan *.md` note (sort by `date` then `time` frontmatter). If one is active, reference it to understand the current prompt, its scoped context, time budget, and verification step.
 

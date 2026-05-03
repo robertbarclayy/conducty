@@ -16,6 +16,7 @@ const REQUIRED_VAULT_PATHS = [
   path.join("Indexes", "Context Index.md"),
   path.join("Indexes", "Improvements Index.md"),
   path.join("Indexes", "Ship Reports Index.md"),
+  path.join("Indexes", "Kernel Contracts Index.md"),
   path.join("Accumulators", "Failure Patterns.md"),
   path.join("Accumulators", "Metrics.md"),
   path.join("Accumulators", "Prompt Log.md"),
@@ -24,6 +25,7 @@ const REQUIRED_VAULT_PATHS = [
   "Improvements",
   "Code Reviews",
   "Ship Reports",
+  "Kernel Contracts",
   "Context"
 ];
 
@@ -317,7 +319,7 @@ function resolveCodexHome() {
 }
 
 function bootstrapVault(vaultPath) {
-  for (const dir of ["", "Indexes", "Accumulators", "Plans", "Designs", "Improvements", "Code Reviews", "Ship Reports", "Context"]) {
+  for (const dir of ["", "Indexes", "Accumulators", "Plans", "Designs", "Improvements", "Code Reviews", "Ship Reports", "Kernel Contracts", "Context"]) {
     fs.mkdirSync(path.join(vaultPath, dir), { recursive: true });
   }
   seed(path.join(vaultPath, "Conducty Index.md"), [
@@ -333,6 +335,7 @@ function bootstrapVault(vaultPath) {
     "- [[Context Index]]",
     "- [[Improvements Index]]",
     "- [[Ship Reports Index]]",
+    "- [[Kernel Contracts Index]]",
     "- [[Failure Patterns]]",
     "- [[Metrics]]",
     "- [[Prompt Log]]",
@@ -343,6 +346,7 @@ function bootstrapVault(vaultPath) {
   seed(path.join(vaultPath, "Indexes", "Context Index.md"), indexNote("Context Index", "Per-project context summaries."));
   seed(path.join(vaultPath, "Indexes", "Improvements Index.md"), indexNote("Improvements Index", "Improvement kata entries. Newest first."));
   seed(path.join(vaultPath, "Indexes", "Ship Reports Index.md"), indexNote("Ship Reports Index", "Pre-merge ship reports. Newest first."));
+  seed(path.join(vaultPath, "Indexes", "Kernel Contracts Index.md"), indexNote("Kernel Contracts Index", "Kernel state contracts. Newest first."));
   seed(path.join(vaultPath, "Accumulators", "Failure Patterns.md"), accumulatorNote("failure-patterns", "Failure Patterns", "Newest first."));
   seed(path.join(vaultPath, "Accumulators", "Prompt Log.md"), accumulatorNote("prompt-log", "Prompt Log", "Newest first."));
   seed(path.join(vaultPath, "Accumulators", "Metrics.md"), [

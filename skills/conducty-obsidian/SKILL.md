@@ -1,6 +1,6 @@
 ---
 name: conducty-obsidian
-description: Conducty's context engine lives in an Obsidian vault. This skill defines the vault layout, naming, linking, and index conventions every other Conducty skill must follow when reading or writing notes. Use when reading/writing any plan, design, context, improvement, failure pattern, metrics, or prompt-log note — or when the user says "vault", "Obsidian", "context engine", "where is X stored".
+description: Conducty's context engine lives in an Obsidian vault. This skill defines the vault layout, naming, linking, and index conventions every other Conducty skill must follow when reading or writing notes. Use when reading/writing any plan, design, context, kernel contract, improvement, failure pattern, metrics, or prompt-log note — or when the user says "vault", "Obsidian", "context engine", "where is X stored".
 aliases:
   - conducty-obsidian
   - conducty-vault
@@ -13,7 +13,7 @@ tags:
 
 # Conducty Obsidian — The Context Engine
 
-Conducty's plans, designs, context, improvements, failure patterns, metrics, and prompt logs all live in an **Obsidian vault**. The vault is not a backup or export target — it IS the context engine. Every Conducty note is written there, linked to its peers, and re-read on future sessions to inform planning.
+Conducty's plans, designs, context, kernel contracts, improvements, failure patterns, metrics, and prompt logs all live in an **Obsidian vault**. The vault is not a backup or export target — it IS the context engine. Every Conducty note is written there, linked to its peers, and re-read on future sessions to inform planning.
 
 > [!important] Read this first
 > Before writing or reading any state file (plan, design, context, etc.), check this skill for naming and linking conventions. Other Conducty skills assume you've internalized these rules.
@@ -59,7 +59,9 @@ The vault is the **memory** of the orchestrator. Treat every note as a node in a
 │   ├── Plans Index.md                           # links every plan note
 │   ├── Designs Index.md                         # links every design doc
 │   ├── Context Index.md                         # links every project context hub
-│   └── Improvements Index.md                    # links every improvement entry
+│   ├── Improvements Index.md                    # links every improvement entry
+│   ├── Ship Reports Index.md                    # links every ship report
+│   └── Kernel Contracts Index.md                # links every kernel contract
 │
 ├── Accumulators/
 │   ├── Failure Patterns.md                      # accumulating, append-prepend
@@ -81,6 +83,9 @@ The vault is the **memory** of the orchestrator. Treat every note as a node in a
 │
 ├── Ship Reports/
 │   └── Ship Report 2026-04-27 1915.md
+│
+├── Kernel Contracts/
+│   └── Kernel Contract 2026-04-27 0915 Auth Cleanup.md
 │
 └── Context/
     └── My App/                                  # one folder per project
@@ -117,6 +122,7 @@ Two note categories:
 | Improvement | `Improvements/` | `Improvement YYYY-MM-DD HHmm.md` | `Improvements/Improvement 2026-04-27 1830.md` |
 | Code review | `Code Reviews/` | `Code Review YYYY-MM-DD HHmm.md` | `Code Reviews/Code Review 2026-04-27 1900.md` |
 | Ship report | `Ship Reports/` | `Ship Report YYYY-MM-DD HHmm.md` | `Ship Reports/Ship Report 2026-04-27 1915.md` |
+| Kernel contract | `Kernel Contracts/` | `Kernel Contract YYYY-MM-DD HHmm {Topic Title Case}.md` | `Kernel Contracts/Kernel Contract 2026-04-27 0915 Auth Cleanup.md` |
 | Index | `Indexes/` | `{Topic} Index.md` | `Indexes/Plans Index.md` |
 
 ### Per-project notes (the context sub-graph — see [[conducty-context]])
@@ -177,6 +183,7 @@ Standard link patterns:
 - A **plan** links: `[[Plans Index]]`, the design(s) it decomposed (`[[Design 2026-04-27 0930 Auth Cleanup]]`), the context note(s) it loaded (`[[Context My App]]`), the prior improvement entry whose experiments it's testing (`[[Improvement 2026-04-26 1830]]`), and any prior plan whose work carries forward (`[[Plan 2026-04-26 0930]]`). Plans also link the accumulating notes they will append to: `[[Failure Patterns]]`, `[[Metrics]]`, `[[Prompt Log]]`.
 - A **design** links: `[[Designs Index]]`, the plan(s) that consume it, the context note(s) for relevant projects, related dialectic decisions.
 - A **context note** links: `[[Context Index]]` and any plan/design that depends on the project. Backlinks accumulate naturally as plans reference it.
+- A **kernel contract** links: `[[Kernel Contracts Index]]`, the root `[[Conducty Index]]`, and the indexes or accumulators it may affect. Avoid wikilinking skill names inside user vault notes unless those skill docs also live in the vault.
 - An **improvement entry** links: `[[Improvements Index]]`, the plan it reflects on, `[[Failure Patterns]]`, prior improvements being evaluated.
 - **Failure Patterns** (accumulating) — each entry inside the file links the plan that surfaced it (`[[Plan 2026-04-27 0930 Auth Cleanup]]`) and the prompt entry in `[[Prompt Log]]`.
 - **Metrics** (accumulating) — each row links its plan.
@@ -221,7 +228,7 @@ Conducty plans. Newest first.
 ## Related
 
 - Root: [[Conducty Index]]
-- See also: [[Designs Index]], [[Improvements Index]], [[Failure Patterns]], [[Metrics]], [[Prompt Log]]
+- See also: [[Designs Index]], [[Improvements Index]], [[Ship Reports Index]], [[Kernel Contracts Index]], [[Failure Patterns]], [[Metrics]], [[Prompt Log]]
 ```
 
 When you create a new per-instance note, **always** prepend its wikilink to the matching index in the same operation.
@@ -244,6 +251,8 @@ The Conducty cycle: Shape → Plan → Trace → Execute → Verify → Improve.
 - [[Designs Index]]
 - [[Context Index]]
 - [[Improvements Index]]
+- [[Ship Reports Index]]
+- [[Kernel Contracts Index]]
 
 ## Accumulating
 
@@ -258,7 +267,7 @@ If the vault root doesn't exist, create it (with the standard subdirectories) be
 
 ```bash
 VAULT="${CONDUCTY_VAULT:-$HOME/Obsidian/Conducty}"
-mkdir -p "$VAULT"/{Indexes,Accumulators,Plans,Designs,Improvements,"Code Reviews","Ship Reports",Context}
+mkdir -p "$VAULT"/{Indexes,Accumulators,Plans,Designs,Improvements,"Code Reviews","Ship Reports","Kernel Contracts",Context}
 ```
 
 `Context/{Project}/` and its `Modules/` + `Refreshes/` subfolders are created lazily by [[conducty-context]] when ingesting a project.
@@ -266,7 +275,7 @@ mkdir -p "$VAULT"/{Indexes,Accumulators,Plans,Designs,Improvements,"Code Reviews
 Seed these notes if missing:
 
 - Root: `Conducty Index.md` (vault root)
-- Indexes (under `Indexes/`): `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`
+- Indexes (under `Indexes/`): `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`, `Ship Reports Index`, `Kernel Contracts Index`
 - Accumulating (under `Accumulators/`): `Failure Patterns`, `Metrics`, `Prompt Log` (each with its frontmatter and an empty body)
 
 The installer (`install-claude-code.sh`) does this on first run. This skill creates them lazily if a write would otherwise create an orphan.
@@ -328,6 +337,7 @@ Standard globs every skill can rely on. All globs are relative to the resolved `
 | Improvements | `Improvements/Improvement *.md` |
 | Code reviews | `Code Reviews/Code Review *.md` |
 | Ship reports | `Ship Reports/Ship Report *.md` |
+| Kernel contracts | `Kernel Contracts/Kernel Contract *.md` |
 | Project hubs | `Context/*/Context *.md` (filter to depth-2 — the hub sits directly under each project folder) |
 | Project slices | `Context/*/Context * Architecture.md`, `Context/*/Context * Conventions.md`, etc. |
 | Module deep notes | `Context/*/Modules/Context *.md` |

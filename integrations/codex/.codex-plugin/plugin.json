@@ -1,7 +1,7 @@
 {
   "name": "conducty-codex",
   "version": "0.1.0",
-  "description": "Conducty-style orchestration for Codex: appetite planning, tracer-first execution, vault notes, prompt logs, and improvement loops.",
+  "description": "Conducty-style orchestration for Codex: kernel state contracts, appetite planning, tracer-first execution, vault notes, prompt logs, and improvement loops.",
   "author": {
     "name": "Conducty",
     "url": "https://www.conducty.ai/"
@@ -15,14 +15,17 @@
     "mcp",
     "orchestration",
     "planning",
-    "verification"
+    "verification",
+    "kernel",
+    "risk",
+    "observatory"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Conducty Codex",
     "shortDescription": "Plan, execute, verify, and improve with a Conducty vault.",
-    "longDescription": "Adds Conducty's orchestration loop to Codex through a skill plus a local MCP server. The server initializes the vault, writes plan notes, checks prompt quality, logs prompt outcomes, records checkpoints, captures improvement kata notes, creates pre-merge ship reports, audits vault graph health, and generates local Observatory reports so orchestration state becomes durable and visible instead of living only in chat.",
+    "longDescription": "Adds Conducty's orchestration loop to Codex through a skill plus a local MCP server. The server initializes the vault, assesses kernel state, scores risk, routes the next skill, writes durable kernel contracts, writes plan notes, checks prompt quality, logs prompt outcomes, records checkpoints, captures improvement kata notes, creates pre-merge ship reports, audits vault graph health, and generates local Observatory reports so orchestration state becomes durable and visible instead of living only in chat.",
     "developerName": "Conducty",
     "category": "Productivity",
     "capabilities": [
@@ -35,7 +38,7 @@
     "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
     "defaultPrompt": [
       "Plan this work with Conducty.",
-      "Create a tracer-first Conducty plan.",
+      "Assess this work with the Conducty kernel.",
       "Log this prompt outcome to Conducty."
     ],
     "brandColor": "#2563EB",

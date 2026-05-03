@@ -13,6 +13,8 @@ tags:
 
 Generate a structured plan of time-budgeted prompts organized into parallel groups with tracer markers, calibrated review levels, prompt quality checks, and a pre-execution plan gate.
 
+For serious, risky, stale-context, or parallel work, run [[conducty-kernel]] before finalizing. The kernel contract supplies state, risk score, invariant gaps, required evidence, and next-skill routing; the plan turns that contract into prompt groups.
+
 A plan is a unit of work, not a calendar boundary. Run a fresh plan whenever you start a new orchestration cycle — multiple plans per day are normal. Each plan note is named `Plans/Plan YYYY-MM-DD HHmm [Topic].md` and lives in the Obsidian vault.
 
 > [!important] Read [[conducty-obsidian]] first
@@ -126,7 +128,7 @@ Not every prompt needs the same review overhead:
 | **Medium** | `spec-review` | Run verification + dispatch spec compliance reviewer. |
 | **High** | `full-review` | Run verification + spec compliance + code quality review. |
 
-This is more efficient than blanket two-stage review for everything. Reserve ceremony for work that warrants it.
+This is more efficient than blanket two-stage review for everything. Reserve ceremony for work that warrants it. When [[conducty-kernel]] produced a numeric risk score, use that score as the review-level source of truth: 0-34 verify-only, 35-64 spec-review, 65+ full-review.
 
 #### 5d: Mark Tracers
 

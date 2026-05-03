@@ -13,6 +13,8 @@ tags:
 
 Execute prompts from the active plan note (in the Obsidian vault — see [[conducty-obsidian]]) by dispatching fresh Claude Code subagents (via the Task tool) with context curation, time budgets, and review rigor that scales with risk. The first prompt in each group runs as a tracer to validate plan assumptions before the rest execute.
 
+Before execution, respect the [[conducty-kernel]] invariants: no execution without a contract, no parallel work before tracer validity, no completion claim without evidence, and no repeat retries beyond the debug circuit breaker.
+
 ## Core Concepts
 
 **Tracer-first:** The prompt marked `★ TRACER` in each group runs alone. If it succeeds, the plan's assumptions hold and the remaining prompts execute. If it fails, stop — the plan needs revision, not just a fix prompt. Tracers catch bad assumptions before they multiply across an entire group.
