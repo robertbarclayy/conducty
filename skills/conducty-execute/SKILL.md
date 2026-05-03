@@ -29,7 +29,23 @@ Execute prompts from the active plan note (in the Obsidian vault — see [[condu
 
 **Context curation:** The orchestrator (you) constructs exactly what each subagent needs. Not your session history, not the entire project — precisely the prompt text, relevant context files, and scene-setting for where this work fits. This is the surgical team model: the surgeon thinks, the team executes with curated information.
 
+**Plan quality gate:** Before spending execution slots, the plan should have a green `## Plan Quality Gate` from [[conducty-plan-audit]]. If the gate is missing, stale after prompt edits, yellow, or red, resolve that before tracer execution.
+
 ## The Process
+
+### Phase 0: Plan Readiness Gate
+
+```
+1. Read the active plan note.
+2. Check its ## Plan Quality Gate section.
+3. If no green gate exists, run [[conducty-plan-audit]] before dispatch.
+4. Handle the result:
+   - green -> proceed to tracer execution
+   - yellow -> revise the plan or get explicit user acceptance of the risk
+   - red -> stop; route back to [[conducty-shape]] or [[conducty-plan]]
+```
+
+Do not treat a red gate as a warning. A red gate means the tracer would be testing an underspecified plan, not implementation risk.
 
 ### Phase 1: Tracer Execution
 

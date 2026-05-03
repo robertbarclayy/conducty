@@ -20,6 +20,8 @@ Before starting work, list the vault for the latest `Plans/Plan *.md` note (sort
 
 **Plan:** Use [[conducty-plan]] to decompose goals into time-budgeted prompts with parallel groups, tracer markers, and calibrated review levels.
 
+**Plan Gate:** Use [[conducty-plan-audit]] before execution. A green gate proceeds to tracer execution; a yellow gate revises or requires explicit risk acceptance; a red gate stops and routes back to [[conducty-shape]] or [[conducty-plan]].
+
 **Trace + Execute:** Use [[conducty-execute]] to run prompts. The first prompt in each group is a tracer — if it fails, re-evaluate the plan before running the rest. Review rigor scales with risk: verify-only for low, spec review for medium, full two-stage for high.
 
 **Verify:** Use [[conducty-checkpoint]] between groups. It measures health metrics (first-attempt pass rate, retries, blocked count) and updates hill chart positions — not just pass/fail.

@@ -26,12 +26,13 @@ Shape → Plan → Trace → Execute → Verify → Improve   →   Code Review 
 
 1. **Shape** — set the appetite, define boundaries and no-go zones, produce a design note
 2. **Plan** — decompose designs into time-budgeted prompts with tracer markers and calibrated review levels
-3. **Trace** — run one prompt per group as a tracer bullet to validate plan assumptions
-4. **Execute** — dispatch remaining prompts via Claude Code's Task tool with review rigor scaled to risk
-5. **Verify** — checkpoint between groups with health metrics and hill chart tracking
-6. **Improve** — extract failure patterns, run the improvement kata, shape the next plan
-7. **Code Review** *(post-cycle)* — whole-branch holistic review of the plan's cumulative diff
-8. **Ship** *(post-cycle)* — pre-merge gate: lint, typecheck, tests, secrets, vuln check, code-review verdict
+3. **Plan Gate** — audit plan readiness before spending agent execution slots
+4. **Trace** — run one prompt per group as a tracer bullet to validate plan assumptions
+5. **Execute** — dispatch remaining prompts via Claude Code's Task tool with review rigor scaled to risk
+6. **Verify** — checkpoint between groups with health metrics and hill chart tracking
+7. **Improve** — extract failure patterns, run the improvement kata, shape the next plan
+8. **Code Review** *(post-cycle)* — whole-branch holistic review of the plan's cumulative diff
+9. **Ship** *(post-cycle)* — pre-merge gate: lint, typecheck, tests, secrets, vuln check, code-review verdict
 
 ## Installation
 
@@ -131,6 +132,8 @@ You: add a date-format helper with TDD
 Claude: [runs conducty-plan with 30-min appetite, single prompt,
         verify-only, no parallelism]
         Plan note written: Plan 2026-04-27 1430 Date Helper.md
+        [runs conducty-plan-audit]
+        Plan gate: green — ready for tracer/manual execution.
         Open it in Obsidian — paste the prompt into a fresh
         Claude Code session in ~/code/my-app.
 You: [paste prompt → implementer writes test, then code → verifies]
@@ -149,7 +152,7 @@ By the end you have a working vault with seven notes per project and your first 
 > plan this work: refactor the billing module to use the new tax engine
 ```
 
-`conducty-plan` reads your prior plan, your latest improvement, your failure patterns, your context sub-graph for `my-app`, and proposes a structured plan with tracer markers and calibrated review levels. Approve, then `execute the plan`.
+`conducty-plan` reads your prior plan, your latest improvement, your failure patterns, your context sub-graph for `my-app`, and proposes a structured plan with tracer markers and calibrated review levels. `conducty-plan-audit` gates the plan before execution so weak plans are fixed before the tracer runs. Approve, gate, then `execute the plan`.
 
 **At the end of the branch (before merge):**
 
@@ -199,9 +202,12 @@ In any project, ask Claude Code to **start a plan**. The `conducty-plan` skill w
 - **Shape non-trivial goals**: Medium/High complexity goals go through `conducty-shape` for appetite-driven design with no-go zones and rabbit hole management
 - Generate a plan note with parallel groups, tracer markers, and calibrated review levels
 - Check every prompt for **prompt smells** before finalizing
+- Run a pre-execution **plan quality gate** with `conducty-plan-audit`
 - Assign review levels: verify-only (low risk), spec-review (medium), full-review (high)
 
 ### Execution: Trace and Execute
+
+Before execution, `conducty-plan-audit` checks appetite fit, prompt independence, tracer quality, verification, no-go zones, scoped context, review calibration, and carry-forward from recent failure patterns. Green proceeds. Yellow revises or requires explicit risk acceptance. Red stops and routes back to shaping or planning.
 
 **Automated (recommended):** Use `conducty-execute` to run prompts via Claude Code's **Task** tool. The **tracer prompt** in each group runs first — if it fails, the plan needs revision, not just a fix. Remaining prompts execute as subagents with review rigor calibrated to their complexity.
 
@@ -246,7 +252,7 @@ Ten engineering-grounded principles enforced across every session:
 
 ## Skills
 
-13 skills, organized into three tiers.
+Conducty skills, organized into three tiers.
 
 ### Foundation
 
@@ -262,6 +268,7 @@ Ten engineering-grounded principles enforced across every session:
 |-------|------|
 | `conducty-shape` | Appetite-driven design. Non-trivial goals get appetite, scope, no-go zones, rabbit-hole budgets. Writes `Design YYYY-MM-DD HHmm {Topic}.md`. |
 | `conducty-plan` | Per-plan batch planning. Decomposes goals into time-budgeted prompts with tracer markers. Writes `Plan YYYY-MM-DD HHmm [Topic].md`. |
+| `conducty-plan-audit` | Pre-execution quality gate. Audits appetite fit, acceptance clarity, prompt independence, tracer strategy, verification, no-go zones, risk calibration, and learning carry-forward before execution. |
 | `conducty-execute` | Tracer-first subagent execution via the Task tool. |
 | `conducty-checkpoint` | Health-aware group gate. Pass rate, hill charts, systemic-failure detection. |
 | `conducty-review` | End-of-plan audit. Evidence-based verdicts; appends to `Failure Patterns`, `Metrics`, `Prompt Log`. |
@@ -300,9 +307,10 @@ Each skill lives in `skills/<skill-name>/SKILL.md`. Claude Code loads them on de
 1. Read `conducty-system` and `conducty-obsidian` — understand the philosophy, the cycle, the ubiquitous language, and the vault contract
 2. Run `conducty-context` on your main project — "Load context from /path/to/my/project". A `Context {Project}.md` note appears in the vault.
 3. Run `conducty-plan` with 2-3 small goals — "Plan this work". Start with Low complexity goals to see the cycle without the full ceremony. A `Plan YYYY-MM-DD HHmm.md` note appears in the vault.
-4. Execute manually — copy prompts from the plan into a fresh Claude Code session. Get a feel for the prompt structure, no-go zones, and verification steps.
-5. Run `conducty-checkpoint` on the group
-6. Run `conducty-review` and `conducty-improve`. Inspect the new entries in `Metrics`, `Failure Patterns`, `Prompt Log`, and the new `Improvement YYYY-MM-DD HHmm.md` note.
+4. Run `conducty-plan-audit` and fix anything yellow/red before execution
+5. Execute manually — copy prompts from the plan into a fresh Claude Code session. Get a feel for the prompt structure, no-go zones, and verification steps.
+6. Run `conducty-checkpoint` on the group
+7. Run `conducty-review` and `conducty-improve`. Inspect the new entries in `Metrics`, `Failure Patterns`, `Prompt Log`, and the new `Improvement YYYY-MM-DD HHmm.md` note.
 
 This gives you one full trip through the cycle. Don't use `conducty-execute` (automated subagents) on the first plan — do it manually so you understand what's happening.
 
@@ -316,7 +324,7 @@ This gives you one full trip through the cycle. Don't use `conducty-execute` (au
 
 By now `Accumulators/Metrics.md` has a healthy run of rows. Look at:
 
-- **First-attempt pass rate** — if it's below 70%, your prompts have smells. Focus on the quality gate in `conducty-plan` Step 5e.
+- **First-attempt pass rate** — if it's below 70%, your prompts or plan have smells. Focus on `conducty-plan` Step 5e and the `conducty-plan-audit` gate.
 - **Most common failure pattern** — open `Accumulators/Failure Patterns.md`. Whatever appears most is your highest-leverage improvement.
 - **Appetite accuracy** — are you consistently over or under budget? Adjust your estimation.
 - **Review level calibration** — are verify-only prompts passing reliably? Are full-review prompts catching real issues? If not, adjust the thresholds.
@@ -339,6 +347,9 @@ conducty-system (philosophy, language)
        │                              conducty-shape  │   conducty-dialectic
        │                                    │         │
        │                                    └────►────┘
+       │                                         │
+       │                                         ▼
+       │                                conducty-plan-audit
        │                                         │
        │                                         ▼
        │                                   conducty-execute
@@ -399,6 +410,7 @@ conducty/
 │   │       ├── security.md
 │   │       ├── migration.md
 │   │       └── performance.md
+│   ├── conducty-plan-audit/         # Pre-execution plan quality gate
 │   ├── conducty-tdd/                # Test-driven development
 │   ├── conducty-execute/            # Tracer-first execution
 │   │   ├── implementer-prompt.md
