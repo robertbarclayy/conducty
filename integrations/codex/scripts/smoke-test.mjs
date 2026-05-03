@@ -101,7 +101,7 @@ try {
 
   const tools = await request("tools/list");
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
-  for (const required of ["bootstrap_vault", "create_plan", "check_prompt_smells", "log_prompt_outcome", "record_checkpoint", "record_improvement", "create_ship_report", "audit_vault_graph"]) {
+  for (const required of ["bootstrap_vault", "create_plan", "check_prompt_smells", "log_prompt_outcome", "record_checkpoint", "record_improvement", "create_ship_report", "audit_vault_graph", "generate_observatory_report"]) {
     if (!toolNames.has(required)) throw new Error(`Missing tool: ${required}`);
   }
 
@@ -248,6 +248,27 @@ try {
   const auditText = audit.content?.[0]?.text || "";
   if (!auditText.includes("Verdict: clean")) {
     throw new Error(`audit_vault_graph expected a clean vault, got:\n${auditText}`);
+  }
+
+  const observatory = await request("tools/call", {
+    name: "generate_observatory_report",
+    arguments: {
+      vault: tempVault,
+      output: "Observatory.html",
+      limit: 5
+    }
+  });
+  const observatoryText = observatory.content?.[0]?.text || "";
+  if (!observatoryText.includes("Conducty Observatory Generated")) {
+    throw new Error(`generate_observatory_report did not report success:\n${observatoryText}`);
+  }
+  const observatoryPath = path.join(tempVault, "Observatory.html");
+  if (!fs.existsSync(observatoryPath)) {
+    throw new Error("generate_observatory_report did not write Observatory.html");
+  }
+  const observatoryHtml = fs.readFileSync(observatoryPath, "utf8");
+  if (!observatoryHtml.includes("Conducty Observatory") || !observatoryHtml.includes("Learning Loop")) {
+    throw new Error("Observatory report did not include expected sections");
   }
 
   const collisionPlanA = await request("tools/call", {

@@ -67,6 +67,7 @@ The MCP server exposes deterministic vault tools for the parts of Conducty that 
 - write improvement kata notes
 - create pre-merge ship reports with verification evidence and residual risks
 - audit the vault graph for broken links, duplicate basenames, orphan notes, and missing closure signals
+- generate a local Observatory HTML report for plan closure, graph health, and learning velocity
 - list recent vault notes
 
 Install the local Codex plugin:
@@ -94,6 +95,13 @@ Run the integration smoke test:
 ```bash
 cd integrations/codex
 node scripts/smoke-test.mjs
+```
+
+Generate a local Observatory report:
+
+```bash
+cd integrations/codex
+node scripts/observatory.mjs --vault "$CONDUCTY_VAULT"
 ```
 
 ## Quickstart — Your First Plan
@@ -369,6 +377,7 @@ conducty/
 │       ├── mcp/
 │       │   └── server.mjs
 │       ├── scripts/
+│       │   ├── observatory.mjs
 │       │   └── smoke-test.mjs
 │       └── skills/
 │           └── conducty-codex/
