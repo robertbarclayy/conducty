@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildObservatory } from "../scripts/observatory.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -210,6 +211,21 @@ const TOOLS = [
       }
     },
     handler: auditVaultGraphTool
+  },
+  {
+    name: "generate_observatory_report",
+    description: "Generate a static HTML Conducty Observatory report for plans, ship reports, checkpoints, wikilinks, failures, and improvement velocity.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        vault: { type: "string" },
+        output: { type: "string", description: "Optional output path. Relative paths are resolved inside the vault; absolute paths must remain inside the vault." },
+        limit: { type: "number", description: "Maximum examples to show per section. Defaults to 10." },
+        maxNotes: { type: "number", description: "Maximum notes to scan. Defaults to 1000." },
+        maxBytesPerNote: { type: "number", description: "Maximum bytes to read per note. Defaults to 1048576." }
+      }
+    },
+    handler: generateObservatoryReportTool
   }
 ];
 
@@ -735,6 +751,66 @@ function auditVaultGraphTool(args) {
     "",
     ...exampleLines(plansWithoutCheckpoint, limit)
   ].join("\n");
+}
+
+function generateObservatoryReportTool(args) {
+  const vault = resolveVault(args);
+  const limit = Math.max(1, Math.min(100, Number(args?.limit) || 10));
+  const maxNotes = Math.max(1, Math.min(10000, Number(args?.maxNotes) || 1000));
+  const maxBytesPerNote = Math.max(1024, Math.min(10 * 1024 * 1024, Number(args?.maxBytesPerNote) || 1024 * 1024));
+  if (!fs.existsSync(vault.path)) {
+    return [
+      "# Conducty Observatory",
+      "",
+      `Vault: ${vault.path}`,
+      "Verdict: missing vault",
+      "",
+      "Run `bootstrap_vault` before generating the Observatory report."
+    ].join("\n");
+  }
+
+  const outputPath = resolveObservatoryOutputPath(vault.path, args?.output);
+  const { summary } = buildObservatory({
+    vaultPath: vault.path,
+    outputPath,
+    limit,
+    maxNotes,
+    maxBytesPerNote
+  });
+
+  return [
+    "# Conducty Observatory Generated",
+    "",
+    `Vault: ${summary.vaultPath}`,
+    `Report: ${summary.outputPath}`,
+    "",
+    "## Summary",
+    "",
+    `- Notes scanned: ${summary.notesScanned}`,
+    `- Scan limit reached: ${summary.scanLimitReached ? "yes" : "no"}`,
+    `- Large notes skipped: ${summary.largeNotesSkipped}`,
+    `- Plans: ${summary.plans.total}`,
+    `- Open plans: ${summary.plans.open}`,
+    `- Shipped plans: ${summary.plans.shipped}`,
+    `- Plans missing checkpoints: ${summary.plans.missingCheckpoints}`,
+    `- Plans missing ship reports: ${summary.plans.missingShipReports}`,
+    `- Broken wikilinks: ${summary.wikilinks.broken}`,
+    `- Duplicate basenames: ${summary.wikilinks.duplicateBasenames}`,
+    `- Improvements last 7 days: ${summary.learning.improvementsLast7Days}`,
+    `- Improvements last 30 days: ${summary.learning.improvementsLast30Days}`
+  ].join("\n");
+}
+
+function resolveObservatoryOutputPath(vaultPath, output) {
+  if (typeof output !== "string" || !output.trim()) {
+    return safeVaultPath(vaultPath, "Conducty Observatory.html");
+  }
+
+  const candidate = path.isAbsolute(output)
+    ? path.resolve(output)
+    : path.resolve(vaultPath, output);
+  assertInsideVault(vaultPath, candidate);
+  return candidate;
 }
 
 function bootstrapVault(vaultPath) {

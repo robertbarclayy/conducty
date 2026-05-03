@@ -8,6 +8,7 @@ This directory packages Conducty for Codex as:
 - a smoke test that exercises the MCP server over stdio
 - a one-command local installer
 - a doctor that diagnoses plugin, vault, marketplace, and MCP health
+- a zero-dependency Observatory report for local vault visibility
 
 The integration preserves Conducty's existing vault contract. Plans, improvements, prompt logs, metrics, and indexes are still regular Markdown notes in the Obsidian vault.
 
@@ -74,6 +75,16 @@ Use `--fix` to bootstrap missing vault notes and safely remove a UTF-8 BOM from 
 node scripts/doctor.mjs --fix
 ```
 
+## Observatory
+
+Generate a local HTML snapshot of the Conducty vault:
+
+```bash
+node scripts/observatory.mjs --vault "$CONDUCTY_VAULT"
+```
+
+By default the report is written to `Conducty Observatory.html` inside the vault. It summarizes open plans, shipped plans, missing checkpoints, plans without ship reports, broken wikilinks, duplicate note names, prompt outcomes, recent failure patterns, ship verdicts, and improvement velocity. The MCP server exposes the same engine as `generate_observatory_report` so Codex can create the report without shelling out.
+
 ## What the MCP Server Adds
 
 The MCP server turns Conducty's state operations into deterministic tools:
@@ -89,6 +100,7 @@ The MCP server turns Conducty's state operations into deterministic tools:
 - `record_improvement`: write an improvement kata note and update `Improvements Index`
 - `create_ship_report`: write a green/yellow/red pre-merge verdict with verification evidence, residual risks, and next steps
 - `audit_vault_graph`: report broken wikilinks, duplicate basenames, orphan user notes, plans without ship reports, and plans without checkpoints
+- `generate_observatory_report`: write a static HTML report that makes plan closure, vault graph health, and learning velocity visible
 
 ## Vault Location
 
@@ -109,9 +121,10 @@ node scripts/smoke-test.mjs
 node scripts/probe-ndjson.mjs
 node scripts/path-safety-test.mjs
 node scripts/install-codex-test.mjs
+node scripts/observatory-test.mjs
 ```
 
-The smoke test creates a temporary vault, initializes the server over stdio, lists tools, creates a plan, checks prompt smells, logs a prompt outcome, records a checkpoint, writes an improvement note, writes a ship report, audits the vault graph, checks duplicate-name allocation, and deletes the temporary vault. The NDJSON probe drives a minimal `initialize` -> `tools/list` -> `tools/call` flow and proves legal callers still work after framing/path changes. The path-safety test asserts that `safeVaultPath` and `findPlanPath` reject symlinked candidate paths and traversal attempts while still allowing a symlinked vault root. The installer test runs the local installer against a temporary Codex config and verifies table updates stay idempotent without clobbering unrelated TOML tables.
+The smoke test creates a temporary vault, initializes the server over stdio, lists tools, creates a plan, checks prompt smells, logs a prompt outcome, records a checkpoint, writes an improvement note, writes a ship report, audits the vault graph, generates an Observatory report, checks duplicate-name allocation, and deletes the temporary vault. The NDJSON probe drives a minimal `initialize` -> `tools/list` -> `tools/call` flow and proves legal callers still work after framing/path changes. The path-safety test asserts that `safeVaultPath` and `findPlanPath` reject symlinked candidate paths and traversal attempts while still allowing a symlinked vault root. The installer test runs the local installer against a temporary Codex config and verifies table updates stay idempotent without clobbering unrelated TOML tables. The Observatory test builds a representative fake vault and asserts the HTML and JSON summaries expose the expected closure, graph, and learning-loop signals.
 
 ## Manual MCP Run
 
