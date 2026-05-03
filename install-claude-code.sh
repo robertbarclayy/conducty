@@ -62,6 +62,7 @@ The Conducty cycle: Shape → Plan → Trace → Execute → Verify → Improve.
 - [[Designs Index]]
 - [[Context Index]]
 - [[Improvements Index]]
+- [[Ship Reports Index]]
 
 ## Accumulating
 
@@ -107,6 +108,9 @@ seed_index "Context Index" "Context Index" \
 
 seed_index "Improvements Index" "Improvements Index" \
     "Conducty improvement kata entries. Newest first."
+
+seed_index "Ship Reports Index" "Ship Reports Index" \
+    "Pre-merge ship reports. Newest first."
 
 # 3. Seed accumulating notes (under Accumulators/)
 seed_accumulating() {

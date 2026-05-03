@@ -1,0 +1,46 @@
+{
+  "name": "conducty-codex",
+  "version": "0.1.0",
+  "description": "Conducty-style orchestration for Codex: appetite planning, tracer-first execution, vault notes, prompt logs, and improvement loops.",
+  "author": {
+    "name": "Conducty",
+    "url": "https://www.conducty.ai/"
+  },
+  "homepage": "https://www.conducty.ai/",
+  "repository": "https://github.com/robertbarclayy/conducty",
+  "license": "MIT",
+  "keywords": [
+    "conducty",
+    "codex",
+    "mcp",
+    "orchestration",
+    "planning",
+    "verification"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Conducty Codex",
+    "shortDescription": "Plan, execute, verify, and improve with a Conducty vault.",
+    "longDescription": "Adds Conducty's orchestration loop to Codex through a skill plus a local MCP server. The server initializes the vault, writes plan notes, checks prompt quality, logs prompt outcomes, records checkpoints, captures improvement kata notes, creates pre-merge ship reports, and audits vault graph health so orchestration state becomes durable instead of living only in chat.",
+    "developerName": "Conducty",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://www.conducty.ai/",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "defaultPrompt": [
+      "Plan this work with Conducty.",
+      "Create a tracer-first Conducty plan.",
+      "Log this prompt outcome to Conducty."
+    ],
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": []
+  }
+}
