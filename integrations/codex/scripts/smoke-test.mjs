@@ -101,7 +101,7 @@ try {
 
   const tools = await request("tools/list");
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
-  for (const required of ["bootstrap_vault", "create_plan", "check_prompt_smells", "log_prompt_outcome", "record_checkpoint", "record_improvement", "create_ship_report", "audit_vault_graph"]) {
+  for (const required of ["bootstrap_vault", "get_kernel", "assess_kernel_state", "create_kernel_contract", "create_plan", "check_prompt_smells", "log_prompt_outcome", "record_checkpoint", "record_improvement", "create_ship_report", "audit_vault_graph"]) {
     if (!toolNames.has(required)) throw new Error(`Missing tool: ${required}`);
   }
 
@@ -112,6 +112,58 @@ try {
 
   if (!fs.existsSync(path.join(tempVault, "Conducty Index.md"))) {
     throw new Error("bootstrap_vault did not create Conducty Index.md");
+  }
+  if (!fs.existsSync(path.join(tempVault, "Indexes", "Kernel Contracts Index.md"))) {
+    throw new Error("bootstrap_vault did not create Kernel Contracts Index.md");
+  }
+
+  const kernel = await request("tools/call", {
+    name: "get_kernel",
+    arguments: { terse: true }
+  });
+  const kernelText = kernel.content?.[0]?.text || "";
+  if (!kernelText.includes("Kernel")) {
+    throw new Error("get_kernel did not return the kernel summary");
+  }
+
+  const assessment = await request("tools/call", {
+    name: "assess_kernel_state",
+    arguments: {
+      goal: "Add a safer release workflow.",
+      acceptanceCriteria: ["Risk is scored", "Next skill is routed"],
+      noGoZones: ["No deploy automation"],
+      context: ["README.md", "integrations/codex/mcp/server.mjs"],
+      verification: "node scripts/smoke-test.mjs",
+      changedFiles: ["integrations/codex/mcp/server.mjs"],
+      contextFreshness: "fresh",
+      hasActivePlan: false
+    }
+  });
+  const assessmentText = assessment.content?.[0]?.text || "";
+  if (!assessmentText.includes("Risk:") || !assessmentText.includes("Next skill:")) {
+    throw new Error(`assess_kernel_state did not return routing and risk:\n${assessmentText}`);
+  }
+
+  const contract = await request("tools/call", {
+    name: "create_kernel_contract",
+    arguments: {
+      vault: tempVault,
+      goal: "Add a safer release workflow.",
+      topic: "Smoke Kernel",
+      acceptanceCriteria: ["Kernel note exists", "Kernel Contracts Index links it"],
+      noGoZones: ["No deploy automation"],
+      context: ["README.md"],
+      verification: "node scripts/smoke-test.mjs",
+      contextFreshness: "fresh"
+    }
+  });
+  const contractText = contract.content?.[0]?.text || "";
+  if (!contractText.includes("Kernel Contract Created")) {
+    throw new Error("create_kernel_contract did not report success");
+  }
+  const kernelContracts = fs.readdirSync(path.join(tempVault, "Kernel Contracts")).filter((file) => file.endsWith(".md"));
+  if (kernelContracts.length !== 1) {
+    throw new Error("create_kernel_contract did not create exactly one kernel contract");
   }
 
   const plan = await request("tools/call", {

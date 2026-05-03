@@ -27,7 +27,7 @@ chmod +x install-claude-code.sh
 This will:
 1. Symlink all `conducty-*` skills to `~/.claude/skills/`
 2. Append Conducty workflow and quality rules to `~/.claude/CLAUDE.md`
-3. Create the Obsidian vault at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`) and seed it with index notes (`Conducty Index`, `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`) and accumulating notes (`Failure Patterns`, `Metrics`, `Prompt Log`)
+3. Create the Obsidian vault at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`) and seed it with index notes (`Conducty Index`, `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`, `Ship Reports Index`, `Kernel Contracts Index`) and accumulating notes (`Failure Patterns`, `Metrics`, `Prompt Log`)
 
 ## Manual Install
 
@@ -77,6 +77,7 @@ Claude Code discovers skills from `~/.claude/skills/` automatically. They trigge
 - "Load context from /path/to/project" → [[conducty-context]]
 - "Checkpoint" → [[conducty-checkpoint]]
 - "What is Conducty?" → [[conducty-system]]
+- "Assess current state / risk / next skill" → [[conducty-kernel]]
 
 ## Updating
 

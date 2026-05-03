@@ -13,6 +13,8 @@ const SERVER_INFO = {
   version: "0.1.0"
 };
 
+const KERNEL_STATES = ["observe", "shape", "plan", "trace", "execute", "verify", "diagnose", "review", "ship", "learn"];
+
 const TOOLS = [
   {
     name: "resolve_vault",
@@ -46,6 +48,75 @@ const TOOLS = [
       }
     },
     handler: getCycleTool
+  },
+  {
+    name: "get_kernel",
+    description: "Return the Conducty closed-loop kernel architecture: state machine, router, contracts, risk model, invariants, evidence, and learning loop.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        terse: { type: "boolean", description: "Return a compact version." }
+      }
+    },
+    handler: getKernelTool
+  },
+  {
+    name: "assess_kernel_state",
+    description: "Assess a Conducty work item as a kernel state contract: infer phase, score risk, route the next skill, check invariants, and list required evidence.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        goal: { type: "string" },
+        topic: { type: "string" },
+        prompt: { type: "string" },
+        currentState: { type: "string", enum: KERNEL_STATES },
+        hasActivePlan: { type: "boolean" },
+        tracerRun: { type: "boolean" },
+        shipReady: { type: "boolean" },
+        acceptanceCriteria: { type: "array", items: { type: "string" } },
+        noGoZones: { type: "array", items: { type: "string" } },
+        context: { type: "array", items: { type: "string" } },
+        verification: { type: "string" },
+        evidence: { type: "array", items: { type: "string" } },
+        changedFiles: { type: "array", items: { type: "string" } },
+        failureSignals: { type: "array", items: { type: "string" } },
+        rollbackNotes: { type: "string" },
+        contextFreshness: { type: "string", enum: ["fresh", "stale", "unknown"] },
+        parallelPrompts: { type: "number" },
+        retries: { type: "number" }
+      }
+    },
+    handler: assessKernelStateTool
+  },
+  {
+    name: "create_kernel_contract",
+    description: "Write a timestamped Conducty kernel contract note with inferred state, risk score, invariant gaps, evidence requirements, and next action.",
+    inputSchema: {
+      type: "object",
+      required: ["goal"],
+      properties: {
+        vault: { type: "string" },
+        goal: { type: "string" },
+        topic: { type: "string" },
+        prompt: { type: "string" },
+        currentState: { type: "string", enum: KERNEL_STATES },
+        hasActivePlan: { type: "boolean" },
+        tracerRun: { type: "boolean" },
+        shipReady: { type: "boolean" },
+        acceptanceCriteria: { type: "array", items: { type: "string" } },
+        noGoZones: { type: "array", items: { type: "string" } },
+        context: { type: "array", items: { type: "string" } },
+        verification: { type: "string" },
+        evidence: { type: "array", items: { type: "string" } },
+        changedFiles: { type: "array", items: { type: "string" } },
+        failureSignals: { type: "array", items: { type: "string" } },
+        rollbackNotes: { type: "string" },
+        contextFreshness: { type: "string", enum: ["fresh", "stale", "unknown"] },
+        parallelPrompts: { type: "number" },
+        retries: { type: "number" }
+      }
+    },
+    handler: createKernelContractTool
   },
   {
     name: "check_prompt_smells",
@@ -110,7 +181,7 @@ const TOOLS = [
         vault: { type: "string" },
         type: {
           type: "string",
-          enum: ["plans", "improvements", "code_reviews", "ship_reports", "accumulators", "all"]
+          enum: ["plans", "improvements", "code_reviews", "ship_reports", "kernel_contracts", "accumulators", "all"]
         },
         limit: { type: "number" }
       }
@@ -277,6 +348,412 @@ function getCycleTool(args) {
     "",
     "Codex boundary: delegate only when the user explicitly asks for subagents, delegation, or parallel agent work."
   ].join("\n");
+}
+
+function getKernelTool(args) {
+  if (args?.terse) {
+    return "Observe -> Shape -> Plan -> Trace -> Execute -> Verify -> Diagnose -> Review -> Ship -> Learn. Kernel owns state, routing, contracts, risk, invariants, evidence, and policy updates.";
+  }
+
+  return [
+    "# Conducty Kernel",
+    "",
+    "Conducty-system explains the philosophy. Conducty-kernel operationalizes it as a closed-loop control layer.",
+    "",
+    "## Loop",
+    "",
+    "Observe -> Shape Hypothesis -> Plan Experiment -> Execute Safely -> Verify Evidence -> Diagnose Failure -> Learn -> Update Policy -> Next Better Plan",
+    "",
+    "## Responsibilities",
+    "",
+    "- State machine: know the current phase and legal transitions.",
+    "- Skill router: choose the next Conducty skill from state, risk, and missing inputs.",
+    "- Contracts: require goals, appetite, acceptance, no-go zones, context, verification, and evidence before advancing.",
+    "- Risk model: scale rigor by blast radius, uncertainty, parallelism, failure history, and test weakness.",
+    "- Invariants: block claims, ship gates, or parallel execution when the required evidence is absent.",
+    "- Evidence objects: preserve commands, outputs, changed files, verdicts, and residual risks.",
+    "- Policy updates: turn recurring failures into sharper templates, routing, and context refresh rules.",
+    "",
+    "## Vocabulary",
+    "",
+    "- system state",
+    "- kernel contract",
+    "- evidence object",
+    "- risk score",
+    "- plan hypothesis",
+    "- tracer validity",
+    "- context freshness",
+    "- reconciliation gate",
+    "- learning delta",
+    "- policy update"
+  ].join("\n");
+}
+
+function assessKernelStateTool(args) {
+  return renderKernelAssessment(assessKernel(args));
+}
+
+function createKernelContractTool(args) {
+  requireString(args.goal, "goal");
+  const vault = resolveVault(args);
+  bootstrapVault(vault.path);
+  const assessment = assessKernel(args);
+  const now = timestamp();
+  const topic = safeTitle(args.topic || summarizeGoal(args.goal));
+  const { filePath: contractPath, linkName } = uniqueVaultNote(vault.path, "Kernel Contracts", `Kernel Contract ${now.date} ${now.time} ${topic}`);
+  const content = renderKernelContractNote({
+    now,
+    linkName,
+    goal: args.goal.trim(),
+    topic,
+    assessment
+  });
+
+  fs.writeFileSync(contractPath, content, "utf8");
+  prependIndexLink(safeVaultPath(vault.path, path.join("Indexes", "Kernel Contracts Index.md")), `- [[${linkName}]]`);
+
+  return [
+    "# Kernel Contract Created",
+    "",
+    `Contract: [[${linkName}]]`,
+    `Path: ${contractPath}`,
+    `Vault: ${vault.path}`,
+    `State: ${assessment.state}`,
+    `Risk: ${assessment.riskScore}/100 (${assessment.riskBand})`,
+    `Next skill: ${assessment.nextSkill}`
+  ].join("\n");
+}
+
+function assessKernel(args = {}) {
+  const goal = stringOr(args.goal, "");
+  const prompt = stringOr(args.prompt, "");
+  const acceptance = toList(args.acceptanceCriteria);
+  const noGo = toList(args.noGoZones);
+  const context = toList(args.context);
+  const evidence = toList(args.evidence);
+  const changedFiles = toList(args.changedFiles);
+  const failureSignals = toList(args.failureSignals);
+  const verification = stringOr(args.verification, "");
+  const rollbackNotes = stringOr(args.rollbackNotes, "");
+  const contextFreshness = ["fresh", "stale", "unknown"].includes(args.contextFreshness) ? args.contextFreshness : "unknown";
+  const currentState = normalizeKernelState(args.currentState);
+  const hasActivePlan = Boolean(args.hasActivePlan);
+  const tracerRun = Boolean(args.tracerRun);
+  const shipReady = Boolean(args.shipReady);
+  const parallelPrompts = numberOr(args.parallelPrompts, 1);
+  const retries = numberOr(args.retries, 0);
+  const text = [goal, prompt, context.join(" "), changedFiles.join(" "), failureSignals.join(" ")].join(" ").toLowerCase();
+
+  const contractGaps = [];
+  if (!goal && !prompt) contractGaps.push("missing goal or prompt");
+  if (!acceptance.length) contractGaps.push("missing acceptance criteria");
+  if (!noGo.length) contractGaps.push("missing no-go zones");
+  if (!verification) contractGaps.push("missing verification command");
+  if (!context.length) contractGaps.push("missing scoped context");
+  if (contextFreshness !== "fresh") contractGaps.push(`context freshness is ${contextFreshness}`);
+  if (changedFiles.length && !evidence.length) contractGaps.push("changed files without evidence object");
+
+  const risk = scoreKernelRisk({
+    text,
+    acceptance,
+    noGo,
+    context,
+    verification,
+    evidence,
+    changedFiles,
+    failureSignals,
+    contextFreshness,
+    parallelPrompts,
+    retries
+  });
+
+  const state = currentState || inferKernelState({
+    goal,
+    prompt,
+    acceptance,
+    noGo,
+    hasActivePlan,
+    tracerRun,
+    shipReady,
+    evidence,
+    changedFiles,
+    failureSignals,
+    retries
+  });
+
+  const invariantViolations = [];
+  if (["trace", "execute", "verify", "review", "ship"].includes(state) && !hasActivePlan) {
+    invariantViolations.push("cannot advance beyond planning without an active plan contract");
+  }
+  if (state === "execute" && parallelPrompts > 1 && !tracerRun) {
+    invariantViolations.push("cannot start parallel execution before tracer validity is known");
+  }
+  if (state === "ship" && !evidence.length) {
+    invariantViolations.push("cannot ship without verification evidence");
+  }
+  if (state === "ship" && risk.score >= 65 && !rollbackNotes) {
+    invariantViolations.push("high-risk ship needs rollback or recovery notes");
+  }
+  if (retries >= 3 && state !== "diagnose") {
+    invariantViolations.push("three retries triggers diagnose/debug circuit breaker");
+  }
+
+  const nextSkill = skillForState(state, invariantViolations, contractGaps);
+  const nextAction = nextActionForState(state, nextSkill, invariantViolations, contractGaps);
+  const evidenceRequired = requiredEvidence({
+    text,
+    state,
+    riskScore: risk.score,
+    changedFiles,
+    failureSignals,
+    parallelPrompts,
+    shipReady
+  });
+
+  return {
+    state,
+    nextSkill,
+    nextAction,
+    riskScore: risk.score,
+    riskBand: riskBand(risk.score),
+    reviewLevel: reviewLevelForRisk(risk.score),
+    riskFactors: risk.factors,
+    contractGaps,
+    invariantViolations,
+    evidenceRequired,
+    contextFreshness,
+    tracerValidity: tracerRun ? "valid or already attempted" : "unknown",
+    inputs: {
+      goal,
+      prompt,
+      acceptanceCriteria: acceptance,
+      noGoZones: noGo,
+      context,
+      verification,
+      evidence,
+      changedFiles,
+      failureSignals,
+      hasActivePlan,
+      tracerRun,
+      shipReady,
+      parallelPrompts,
+      retries
+    }
+  };
+}
+
+function renderKernelAssessment(assessment) {
+  return [
+    "# Conducty Kernel State",
+    "",
+    `State: ${assessment.state}`,
+    `Next skill: ${assessment.nextSkill}`,
+    `Next action: ${assessment.nextAction}`,
+    `Risk: ${assessment.riskScore}/100 (${assessment.riskBand})`,
+    `Review level: ${assessment.reviewLevel}`,
+    `Context freshness: ${assessment.contextFreshness}`,
+    `Tracer validity: ${assessment.tracerValidity}`,
+    "",
+    "## Risk Factors",
+    "",
+    ...bulletList(assessment.riskFactors.length ? assessment.riskFactors : ["none detected"]),
+    "",
+    "## Contract Gaps",
+    "",
+    ...bulletList(assessment.contractGaps.length ? assessment.contractGaps : ["none"]),
+    "",
+    "## Invariant Violations",
+    "",
+    ...bulletList(assessment.invariantViolations.length ? assessment.invariantViolations : ["none"]),
+    "",
+    "## Required Evidence",
+    "",
+    ...bulletList(assessment.evidenceRequired),
+    "",
+    "## Kernel Contract JSON",
+    "",
+    "```json",
+    JSON.stringify({
+      state: assessment.state,
+      nextSkill: assessment.nextSkill,
+      nextAction: assessment.nextAction,
+      riskScore: assessment.riskScore,
+      riskBand: assessment.riskBand,
+      reviewLevel: assessment.reviewLevel,
+      contractGaps: assessment.contractGaps,
+      invariantViolations: assessment.invariantViolations,
+      evidenceRequired: assessment.evidenceRequired
+    }, null, 2),
+    "```"
+  ].join("\n");
+}
+
+function renderKernelContractNote({ now, linkName, goal, topic, assessment }) {
+  return [
+    "---",
+    "type: kernel-contract",
+    `date: ${now.date}`,
+    `time: ${now.time}`,
+    `topic: "${escapeYaml(topic)}"`,
+    `state: ${assessment.state}`,
+    `risk_score: ${assessment.riskScore}`,
+    `risk_band: ${assessment.riskBand}`,
+    `review_level: ${assessment.reviewLevel}`,
+    "tags: [conducty, conducty/kernel, conducty/contract]",
+    "---",
+    "",
+    `# ${linkName}`,
+    "",
+    "## Goal",
+    "",
+    goal,
+    "",
+    "## Kernel Verdict",
+    "",
+    `- State: ${assessment.state}`,
+    `- Next skill: ${plainWikilinks(assessment.nextSkill)}`,
+    `- Next action: ${plainWikilinks(assessment.nextAction)}`,
+    `- Risk: ${assessment.riskScore}/100 (${assessment.riskBand})`,
+    `- Review level: ${assessment.reviewLevel}`,
+    `- Context freshness: ${assessment.contextFreshness}`,
+    `- Tracer validity: ${assessment.tracerValidity}`,
+    "",
+    "## Contract Gaps",
+    "",
+    ...bulletList(assessment.contractGaps.length ? assessment.contractGaps : ["none"]),
+    "",
+    "## Invariant Violations",
+    "",
+    ...bulletList(assessment.invariantViolations.length ? assessment.invariantViolations : ["none"]),
+    "",
+    "## Risk Factors",
+    "",
+    ...bulletList(assessment.riskFactors.length ? assessment.riskFactors : ["none detected"]),
+    "",
+    "## Required Evidence",
+    "",
+    ...bulletList(assessment.evidenceRequired),
+    "",
+    "## Inputs",
+    "",
+    "```json",
+    JSON.stringify(assessment.inputs, null, 2),
+    "```",
+    "",
+    "## Related",
+    "",
+    "- Index: [[Kernel Contracts Index]]",
+    "- System: [[Conducty Index]]",
+    "- Feeds: [[Plans Index]], [[Failure Patterns]], [[Metrics]], [[Prompt Log]]",
+    ""
+  ].join("\n");
+}
+
+function normalizeKernelState(value) {
+  const state = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return KERNEL_STATES.includes(state) ? state : "";
+}
+
+function inferKernelState(input) {
+  if (input.failureSignals.length || input.retries >= 3) return "diagnose";
+  if (!input.goal && !input.prompt) return "observe";
+  if (!input.acceptance.length || !input.noGo.length) return "shape";
+  if (!input.hasActivePlan) return "plan";
+  if (!input.tracerRun) return "trace";
+  if (input.changedFiles.length && !input.evidence.length) return "verify";
+  if (input.shipReady) return "ship";
+  if (input.evidence.length) return "review";
+  return "execute";
+}
+
+function scoreKernelRisk(input) {
+  let score = 10;
+  const factors = [];
+  const add = (points, factor) => {
+    score += points;
+    factors.push(factor);
+  };
+
+  if (/\b(auth|permission|security|secret|credential|token|payment|billing|invoice|database|migration|schema|production|deploy|release|rollback|encryption|privacy|pii|admin)\b/i.test(input.text)) {
+    add(25, "high-blast-radius domain language");
+  }
+  if (input.changedFiles.length >= 8) add(15, "wide file surface");
+  else if (input.changedFiles.length >= 3) add(8, "multi-file change");
+  if (input.parallelPrompts > 1) add(Math.min(20, (input.parallelPrompts - 1) * 6), "parallel execution requires reconciliation");
+  if (!input.verification) add(12, "missing verification command");
+  if (!input.acceptance.length) add(8, "missing acceptance criteria");
+  if (!input.noGo.length) add(6, "missing no-go zones");
+  if (!input.context.length) add(8, "missing scoped context");
+  if (input.contextFreshness === "stale") add(12, "stale context");
+  else if (input.contextFreshness === "unknown") add(5, "unknown context freshness");
+  if (input.failureSignals.length) add(15, "active failure signals");
+  if (input.retries > 0) add(Math.min(24, input.retries * 8), "retry history");
+  if (input.changedFiles.length && !input.evidence.length) add(10, "changed files lack evidence object");
+
+  return { score: Math.max(0, Math.min(100, Math.round(score))), factors };
+}
+
+function riskBand(score) {
+  if (score >= 80) return "critical";
+  if (score >= 65) return "high";
+  if (score >= 35) return "medium";
+  return "low";
+}
+
+function reviewLevelForRisk(score) {
+  if (score >= 65) return "full-review";
+  if (score >= 35) return "spec-review";
+  return "verify-only";
+}
+
+function skillForState(state, invariantViolations, contractGaps) {
+  if (invariantViolations.length) return "[[conducty-debug]]";
+  if (contractGaps.some((gap) => /acceptance|no-go|goal/.test(gap))) return "[[conducty-shape]]";
+  switch (state) {
+    case "observe": return "[[conducty-context]]";
+    case "shape": return "[[conducty-shape]]";
+    case "plan": return "[[conducty-plan]]";
+    case "trace":
+    case "execute": return "[[conducty-execute]]";
+    case "verify": return "[[conducty-verify]]";
+    case "diagnose": return "[[conducty-debug]]";
+    case "review": return "[[conducty-review]]";
+    case "ship": return "[[conducty-ship]]";
+    case "learn": return "[[conducty-improve]]";
+    default: return "[[conducty-system]]";
+  }
+}
+
+function nextActionForState(state, nextSkill, invariantViolations, contractGaps) {
+  if (invariantViolations.length) return `Stop and clear kernel invariant violations with ${nextSkill}.`;
+  if (contractGaps.some((gap) => /acceptance|no-go|goal/.test(gap))) return `Shape the contract before planning with ${nextSkill}.`;
+  switch (state) {
+    case "observe": return "Load or refresh project/vault context before shaping.";
+    case "shape": return "Define appetite, scope, no-go zones, acceptance criteria, and decision points.";
+    case "plan": return "Compile a time-budgeted plan with tracer, dependencies, review level, and verification.";
+    case "trace": return "Run the tracer prompt first and record whether the plan hypothesis survives contact.";
+    case "execute": return "Execute only after tracer validity; isolate parallel work and keep evidence objects.";
+    case "verify": return "Run the smallest meaningful verification and record exact evidence.";
+    case "diagnose": return "Classify the failure as plan, prompt, context, code, tool, or environment before fixing.";
+    case "review": return "Review the cumulative diff and feed findings into failure patterns and metrics.";
+    case "ship": return "Run the ship gate with verification evidence, residual risk, and rollback notes.";
+    case "learn": return "Record the learning delta and update the next plan policy.";
+    default: return "Route through conducty-system to choose the next phase.";
+  }
+}
+
+function requiredEvidence(input) {
+  const required = ["goal, appetite, acceptance criteria, no-go zones, and scoped context"];
+  if (input.changedFiles.length) required.push("changed file list or diff summary");
+  required.push("fresh verification command output");
+  if (input.riskScore >= 65) required.push("risk-calibrated review verdict and regression evidence");
+  if (/\b(auth|permission|security|secret|credential|token|payment|billing|pii|privacy)\b/i.test(input.text)) {
+    required.push("security/privacy review evidence");
+  }
+  if (input.parallelPrompts > 1) required.push("reconciliation gate notes for parallel branches or worktrees");
+  if (input.failureSignals.length) required.push("failure classification and prevention note");
+  if (input.shipReady) required.push("ship report with green/yellow/red verdict and rollback notes");
+  return [...new Set(required)];
 }
 
 function checkPromptSmellsTool(args) {
@@ -738,7 +1215,7 @@ function auditVaultGraphTool(args) {
 }
 
 function bootstrapVault(vaultPath) {
-  for (const dir of ["", "Indexes", "Accumulators", "Plans", "Designs", "Improvements", "Code Reviews", "Ship Reports", "Context"]) {
+  for (const dir of ["", "Indexes", "Accumulators", "Plans", "Designs", "Improvements", "Code Reviews", "Ship Reports", "Kernel Contracts", "Context"]) {
     fs.mkdirSync(path.join(vaultPath, dir), { recursive: true });
   }
 
@@ -759,6 +1236,7 @@ function bootstrapVault(vaultPath) {
     "- [[Context Index]]",
     "- [[Improvements Index]]",
     "- [[Ship Reports Index]]",
+    "- [[Kernel Contracts Index]]",
     "",
     "## Accumulating",
     "",
@@ -773,6 +1251,7 @@ function bootstrapVault(vaultPath) {
   seedNote(path.join(vaultPath, "Indexes", "Context Index.md"), indexNote("Context Index", "Per-project context summaries."));
   seedNote(path.join(vaultPath, "Indexes", "Improvements Index.md"), indexNote("Improvements Index", "Improvement kata entries. Newest first."));
   seedNote(path.join(vaultPath, "Indexes", "Ship Reports Index.md"), indexNote("Ship Reports Index", "Pre-merge ship reports. Newest first."));
+  seedNote(path.join(vaultPath, "Indexes", "Kernel Contracts Index.md"), indexNote("Kernel Contracts Index", "Kernel state contracts. Newest first."));
   seedNote(path.join(vaultPath, "Accumulators", "Failure Patterns.md"), accumulatorNote("failure-patterns", "Failure Patterns", "Newest first."));
   seedNote(path.join(vaultPath, "Accumulators", "Metrics.md"), [
     "---",
@@ -997,8 +1476,9 @@ function noteDirsForType(type) {
     case "improvements": return ["Improvements"];
     case "code_reviews": return ["Code Reviews"];
     case "ship_reports": return ["Ship Reports"];
+    case "kernel_contracts": return ["Kernel Contracts"];
     case "accumulators": return ["Accumulators"];
-    case "all": return ["Plans", "Designs", "Improvements", "Code Reviews", "Ship Reports", "Accumulators"];
+    case "all": return ["Plans", "Designs", "Improvements", "Code Reviews", "Ship Reports", "Kernel Contracts", "Accumulators"];
     default: return ["Plans"];
   }
 }
@@ -1072,7 +1552,7 @@ function listMarkdownNotes(vaultPath, options = {}) {
     }
   };
 
-  for (const root of ["Conducty Index.md", "Indexes", "Accumulators", "Plans", "Designs", "Improvements", "Code Reviews", "Ship Reports", "Context"]) {
+  for (const root of ["Conducty Index.md", "Indexes", "Accumulators", "Plans", "Designs", "Improvements", "Code Reviews", "Ship Reports", "Kernel Contracts", "Context"]) {
     const fullPath = path.join(vaultPath, root);
     if (!fs.existsSync(fullPath)) continue;
     const stat = fs.statSync(fullPath);
@@ -1268,6 +1748,10 @@ function wikilink(value) {
   return `[[${path.basename(raw, path.extname(raw))}]]`;
 }
 
+function plainWikilinks(value) {
+  return String(value || "").replace(/\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]/g, "$1");
+}
+
 function toList(value) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
   if (typeof value === "string" && value.trim()) return [value.trim()];
@@ -1280,6 +1764,11 @@ function bulletList(items) {
 
 function stringOr(value, fallback) {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function numberOr(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
 }
 
 function requireString(value, name) {

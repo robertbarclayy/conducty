@@ -81,9 +81,12 @@ The MCP server turns Conducty's state operations into deterministic tools:
 - `resolve_vault`: show the active vault path and whether it exists
 - `bootstrap_vault`: create the vault folders, indexes, and accumulator notes
 - `get_cycle`: return the Conducty operating loop
+- `get_kernel`: return the closed-loop kernel architecture, state vocabulary, and operating responsibilities
+- `assess_kernel_state`: infer current state, route the next skill, score risk, check invariants, and list required evidence
+- `create_kernel_contract`: write a timestamped kernel contract note and update `Kernel Contracts Index`
 - `check_prompt_smells`: catch vague prompts before execution
 - `create_plan`: write a timestamped plan note and update `Plans Index`
-- `list_recent_notes`: list recent vault notes by type
+- `list_recent_notes`: list recent vault notes by type, including plans, improvements, ship reports, kernel contracts, accumulators, or all notes
 - `log_prompt_outcome`: prepend a terse entry to `Prompt Log`
 - `record_checkpoint`: append group health metrics to the plan note
 - `record_improvement`: write an improvement kata note and update `Improvements Index`
@@ -111,7 +114,7 @@ node scripts/path-safety-test.mjs
 node scripts/install-codex-test.mjs
 ```
 
-The smoke test creates a temporary vault, initializes the server over stdio, lists tools, creates a plan, checks prompt smells, logs a prompt outcome, records a checkpoint, writes an improvement note, writes a ship report, audits the vault graph, checks duplicate-name allocation, and deletes the temporary vault. The NDJSON probe drives a minimal `initialize` -> `tools/list` -> `tools/call` flow and proves legal callers still work after framing/path changes. The path-safety test asserts that `safeVaultPath` and `findPlanPath` reject symlinked candidate paths and traversal attempts while still allowing a symlinked vault root. The installer test runs the local installer against a temporary Codex config and verifies table updates stay idempotent without clobbering unrelated TOML tables.
+The smoke test creates a temporary vault, initializes the server over stdio, lists tools, reads the kernel summary, assesses a kernel state, writes a kernel contract, creates a plan, checks prompt smells, logs a prompt outcome, records a checkpoint, writes an improvement note, writes a ship report, audits the vault graph, checks duplicate-name allocation, and deletes the temporary vault. The NDJSON probe drives a minimal `initialize` -> `tools/list` -> `tools/call` flow and proves legal callers still work after framing/path changes. The path-safety test asserts that `safeVaultPath` and `findPlanPath` reject symlinked candidate paths and traversal attempts while still allowing a symlinked vault root. The installer test runs the local installer against a temporary Codex config and verifies table updates stay idempotent without clobbering unrelated TOML tables.
 
 ## Manual MCP Run
 

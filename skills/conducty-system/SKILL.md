@@ -11,7 +11,9 @@ tags:
 
 # Conducty — Systems-Level Agent Orchestration
 
-Conducty is a per-plan orchestration system for AI agents. It does not tell agents HOW to write code — it orchestrates WHY work succeeds or fails at scale, then improves the system at the end of every plan.
+Conducty is a closed-loop orchestration system for AI agents. It does not tell agents HOW to write code — it orchestrates WHY work succeeds or fails at scale, then improves the system at the end of every plan.
+
+Operationally, Conducty now has a kernel layer: a state machine, skill router, contract checker, risk model, invariant gate, evidence model, and learning loop. The friendly cycle tells you the phase names; [[conducty-kernel]] decides whether the system has enough contract and evidence to safely advance.
 
 **What Conducty is not:** A collection of isolated technique skills. If you want "how to debug" or "how to TDD" as standalone recipes, those exist elsewhere. Conducty's skills are phases of a single system — they reference each other, feed data forward, and form feedback loops.
 
@@ -35,6 +37,7 @@ Shape → Plan → Trace → Execute → Verify → Improve
 | **Improve** | [[conducty-improve]] | End-of-plan learning: what worked, what failed, what changes next |
 
 **Foundation skills:**
+- [[conducty-kernel]] — Closed-loop control layer. State machine, skill router, contracts, risk model, invariants, evidence objects, and policy updates.
 - [[conducty-obsidian]] — Vault conventions; the context engine. Read before any state I/O.
 - [[conducty-bootstrap]] — First-run walkthrough. Confirms vault, runs first context, produces a tiny throwaway first plan.
 
@@ -135,12 +138,21 @@ These terms have precise meanings across all Conducty skills. Use them consisten
 | **Leverage point** | The highest-impact place to fix a failure: prompt quality > plan quality > code quality |
 | **Circuit breaker** | A hard stop that prevents wasted work: time budget exceeded, 3 retries exhausted, or systemic failure detected |
 | **Improvement note** | A learning from a finished plan that changes the next plan's approach. Saved to the vault as `Improvements/Improvement YYYY-MM-DD HHmm.md` |
+| **System state** | The kernel's current phase: observe, shape, plan, trace, execute, verify, diagnose, review, ship, or learn |
+| **Kernel contract** | The minimum structured agreement needed to advance: goal, appetite, acceptance, no-go zones, context, verification, risk, evidence, and next skill |
+| **Evidence object** | A compact proof bundle: command, output summary, changed files, verdict, residual risk, and rollback notes when needed |
+| **Risk score** | A 0-100 routing signal based on blast radius, uncertainty, context freshness, tests, failures, and parallelism |
+| **Tracer validity** | Whether the tracer prompt has confirmed the plan hypothesis before broader execution |
+| **Context freshness** | Whether vault/project context is fresh enough for the task's risk level |
+| **Reconciliation gate** | The merge-safety check for parallel branches or worktrees before review/ship |
+| **Learning delta** | A specific update to templates, risk model, routing, failure patterns, or context that changes the next plan |
 
 ## Where Am I in the Cycle?
 
 Use this to find the right skill:
 
 - **"I just installed Conducty / vault is empty"** → [[conducty-bootstrap]]
+- **"I need the current state / risk / next skill / evidence requirements"** → [[conducty-kernel]]
 - **"I have goals but haven't designed anything"** → [[conducty-shape]]
 - **"I have a design, need a plan"** → [[conducty-plan]]
 - **"I have a plan, ready to execute"** → [[conducty-execute]]
@@ -166,9 +178,9 @@ The user is always in control. Conducty is a tool, not a mandate.
 
 ## Context Engine — The Vault
 
-All Conducty state — plans, designs, context, improvements, metrics, failure patterns, prompt logs — lives in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). The vault is the orchestrator's memory: every note is wikilinked to its peers so that future plans inherit the full graph.
+All Conducty state — plans, designs, context, kernel contracts, improvements, metrics, failure patterns, prompt logs — lives in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). The vault is the orchestrator's memory: every note is wikilinked to its peers so that future plans inherit the full graph.
 
-**Read [[conducty-obsidian]] before reading or writing any state file.** It defines vault location, naming (`Plan YYYY-MM-DD HHmm [Topic]`, `Design YYYY-MM-DD HHmm {Topic}`, `Context {Project}`, `Improvement YYYY-MM-DD HHmm`), accumulating notes (`Failure Patterns`, `Metrics`, `Prompt Log`), and indexes (`Conducty Index`, `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`).
+**Read [[conducty-obsidian]] before reading or writing any state file.** It defines vault location, naming (`Plan YYYY-MM-DD HHmm [Topic]`, `Design YYYY-MM-DD HHmm {Topic}`, `Kernel Contract YYYY-MM-DD HHmm {Topic}`, `Context {Project}`, `Improvement YYYY-MM-DD HHmm`), accumulating notes (`Failure Patterns`, `Metrics`, `Prompt Log`), and indexes (`Conducty Index`, `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`, `Ship Reports Index`, `Kernel Contracts Index`).
 
 Multiple plans per day are expected — each plan note is timestamped, not date-only.
 
