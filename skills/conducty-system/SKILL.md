@@ -29,6 +29,7 @@ Shape → Plan → Trace → Execute → Verify → Improve
 |-------|-------|-------------|
 | **Shape** | [[conducty-shape]] | Turn unclear goals into bounded designs with appetite, scope, and no-go zones |
 | **Plan** | [[conducty-plan]] | Decompose designs into prompts with time budgets, verification, and parallel groups |
+| **Plan Gate** | [[conducty-plan-audit]] | Audit readiness before execution: appetite fit, tracer strategy, verification, risk, and learning carry-forward |
 | **Trace** | [[conducty-execute]] | Run the first prompt in each group as a tracer bullet to validate plan assumptions |
 | **Execute** | [[conducty-execute]] | Dispatch remaining prompts with calibrated review (rigor scales with risk) |
 | **Verify** | [[conducty-checkpoint]] | Gate between groups: health metrics, hill chart updates, systemic failure detection |
@@ -40,6 +41,7 @@ Shape → Plan → Trace → Execute → Verify → Improve
 
 **Supporting skills** (used within the cycle, not phases themselves):
 - [[conducty-verify]] — Evidence gate used by execute and checkpoint
+- [[conducty-plan-audit]] — Pre-execution quality gate used between plan and tracer execution
 - [[conducty-debug]] — Leverage-point analysis when prompts fail
 - [[conducty-tdd]] — Test-driven discipline for orchestrator and implementer
 - [[conducty-context]] — Project ingestion as a linked sub-graph (Architecture, Conventions, Invariants, Hotspots, Tests, Glossary, per-module deep notes)
@@ -74,7 +76,7 @@ Before full parallel execution, run ONE prompt end-to-end as a tracer to validat
 
 *Thinking in Systems — Donella Meadows*
 
-Everything downstream — verification, debugging, retries — compensates for bad prompts. Invest upstream. A prompt with clear acceptance criteria, scoped context, and a concrete verification command succeeds on the first attempt. A vague prompt generates rework no matter how good your review process is.
+Everything downstream — verification, debugging, retries — compensates for bad prompts and bad plans. Invest upstream. A prompt with clear acceptance criteria, scoped context, and a concrete verification command succeeds on the first attempt. A plan with a green [[conducty-plan-audit]] gate prevents whole-group waste before the tracer runs.
 
 ### 4. Deep Modules, Not Ceremony
 
@@ -132,6 +134,7 @@ These terms have precise meanings across all Conducty skills. Use them consisten
 | **Checkpoint** | A quality gate between groups that measures health, not just pass/fail |
 | **Hill** | A goal's progress state: uphill (figuring it out) or downhill (making it happen) |
 | **Prompt smell** | A sign that a prompt will fail: too vague, too broad, missing context, mixed concerns, no verification |
+| **Plan gate** | A pre-execution audit verdict from [[conducty-plan-audit]]: green, yellow, or red |
 | **Leverage point** | The highest-impact place to fix a failure: prompt quality > plan quality > code quality |
 | **Circuit breaker** | A hard stop that prevents wasted work: time budget exceeded, 3 retries exhausted, or systemic failure detected |
 | **Improvement note** | A learning from a finished plan that changes the next plan's approach. Saved to the vault as `Improvements/Improvement YYYY-MM-DD HHmm.md` |
@@ -143,6 +146,7 @@ Use this to find the right skill:
 - **"I just installed Conducty / vault is empty"** → [[conducty-bootstrap]]
 - **"I have goals but haven't designed anything"** → [[conducty-shape]]
 - **"I have a design, need a plan"** → [[conducty-plan]]
+- **"I have a plan, is it ready?"** → [[conducty-plan-audit]]
 - **"I have a plan, ready to execute"** → [[conducty-execute]]
 - **"A group just finished, need to check quality"** → [[conducty-checkpoint]]
 - **"A prompt failed, need to understand why"** → [[conducty-debug]]

@@ -405,6 +405,7 @@ The vault replaces all of it. If you find a Conducty skill that still references
 ## Integration
 
 - [[conducty-plan]] reads/writes `Plan YYYY-MM-DD HHmm [Topic].md`
+- [[conducty-plan-audit]] updates the plan note's `## Plan Quality Gate` section before execution
 - [[conducty-shape]] writes `Design YYYY-MM-DD HHmm {Topic}.md`
 - [[conducty-context]] writes the project sub-graph (`Context {Project}` hub + Architecture/Conventions/Invariants/Hotspots/Tests/Glossary slices, optional module deep notes, refresh deltas)
 - [[conducty-improve]] writes `Improvement YYYY-MM-DD HHmm.md`

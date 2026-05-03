@@ -31,6 +31,7 @@ Claude Code discovers Conducty skills from `~/.claude/skills/` after running `./
 | [[conducty-bootstrap]] | onboarding | first run, "set up Conducty", empty vault |
 | [[conducty-shape]] | shape | "shape", "design", "brainstorm" |
 | [[conducty-plan]] | plan | "plan", "batch plan", "create a plan" |
+| [[conducty-plan-audit]] | plan gate | "audit this plan", "quality gate", "ready to execute" |
 | [[conducty-tdd]] | discipline | "TDD", "red-green-refactor" |
 | [[conducty-terse]] | discipline | "terse mode", "compress prompts", "tight prompts" |
 | [[conducty-execute]] | execute | "execute the plan", "run group A" |
@@ -109,6 +110,8 @@ The following rules apply to all Conducty workflows. They are appended to `~/.cl
 
 **Prompt quality is leverage.** Everything downstream compensates for bad prompts. Invest upstream: clear acceptance criteria, scoped context, concrete verification. Check for prompt smells before finalizing any plan.
 
+**Plan gate before execution.** Use [[conducty-plan-audit]] before tracer execution. A red gate stops the plan; a yellow gate gets revised or explicitly accepted; a green gate spends agent time.
+
 **Evidence before claims.** No completion claims without fresh verification output. Use [[conducty-verify]]. Rigor scales with risk: verify-only for low, spec review for medium, full two-stage for high.
 
 **Root cause before fixes.** When a prompt fails, ask WHERE the leverage point is: prompt quality, plan quality, or code quality. Fix at the highest level. Use [[conducty-debug]]. Three failures on the same prompt = circuit breaker — escalate.
@@ -135,6 +138,8 @@ Before starting work, list the vault for the latest `Plans/Plan *.md` note (sort
 **Shape:** For non-trivial goals, use [[conducty-shape]] to define appetite, scope, no-go zones, and design before planning. For architectural decisions, use [[conducty-dialectic]].
 
 **Plan:** Use [[conducty-plan]] to decompose goals into time-budgeted prompts with parallel groups, tracer markers, and calibrated review levels.
+
+**Plan Gate:** Use [[conducty-plan-audit]] before execution. A green gate proceeds to tracer execution; a yellow gate revises or requires explicit risk acceptance; a red gate stops and routes back to [[conducty-shape]] or [[conducty-plan]].
 
 **Trace + Execute:** Use [[conducty-execute]] to run prompts. The first prompt in each group is a tracer — if it fails, re-evaluate the plan before running the rest. Review rigor scales with risk: verify-only for low, spec review for medium, full two-stage for high.
 
