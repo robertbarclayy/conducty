@@ -1,14 +1,15 @@
 # Real-World Token Savings Benchmark
 
-Generated: 2026-05-05T19:11:04.420Z
+Generated: 2026-05-05T19:31:17.264Z
 
 This optional benchmark clones public repositories, selects one recent non-merge commit with a focused code change from each repo, and compares:
 
 - **Baseline context:** every readable project text file in that checkout, excluding dependency, build, generated, binary/media, and lockfile surfaces.
 - **Conducty focused context:** the changed readable files for the selected commit plus root manifests such as `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `pubspec.yaml`, and `README.md` when present.
+- **Workflow model:** a four-phase plan/execute/verify/review estimate. The naive baseline reloads whole-repo readable context in each phase; the Conducty path uses focused context for plan/execute/verify plus commit diff evidence for review, and is charged extra fixed overhead for plan, checkpoint, and verification notes.
 - **Token estimate:** `ceil(total UTF-8 characters / 4)` for a deterministic offline approximation.
 
-This measures context-loading reduction for realistic focused tasks. It does not claim total model-billing savings, universal savings for every task, or that an agent never needs more context during debugging.
+This measures context-loading and workflow-context reduction for realistic focused tasks. It does not claim exact provider billing, universal savings for every task, or that an agent never needs more context during debugging.
 
 ## Summary
 
@@ -20,8 +21,13 @@ This measures context-loading reduction for realistic focused tasks. It does not
 - Tokens saved: 4,755,784
 - Aggregate savings: 96.5%
 - Median per-repo savings: 92.1%
+- Workflow baseline tokens: 19,730,228
+- Workflow Conducty tokens: 556,180
+- Workflow tokens saved: 19,174,048
+- Workflow aggregate savings: 97.2%
+- Workflow median per-repo savings: 93.6%
 
-## Results
+## Context Results
 
 | Repo | Commit | Focused change | Baseline files | Focused files | Baseline tokens | Focused tokens | Saved tokens | Saved % |
 |---|---|---|---:|---:|---:|---:|---:|---:|
@@ -33,6 +39,21 @@ This measures context-loading reduction for realistic focused tasks. It does not
 | redux | 9f3de7448348 | Fix redux-thunk imports in docs examples (#4779) | 361 | 13 | 439792 | 25854 | 413938 | 94.1% |
 | preact | 21dd6d04c1a9 | forwardport from v10 (#5053) | 283 | 15 | 362973 | 62610 | 300363 | 82.8% |
 | rustlings | 346753b673e0 | Make starting fireworks more fun :) | 275 | 4 | 124472 | 1273 | 123199 | 99.0% |
+
+## Workflow Results
+
+Formula: baseline = 4 * whole-repo tokens + 650 prompt tokens per phase. Conducty = 3 * focused tokens + commit diff tokens + 3200 plan/checkpoint/verification overhead tokens.
+
+| Repo | Baseline workflow tokens | Conducty workflow tokens | Diff evidence tokens | Saved tokens | Saved % |
+|---|---:|---:|---:|---:|---:|
+| flutterzon_bloc | 685548 | 57933 | 3574 | 627615 | 91.5% |
+| express | 726328 | 19191 | 340 | 707137 | 97.4% |
+| flask | 1189524 | 96684 | 340 | 1092840 | 91.9% |
+| fastapi | 13052356 | 58174 | 950 | 12994182 | 99.6% |
+| chi | 359724 | 35287 | 557 | 324437 | 90.2% |
+| redux | 1761768 | 83523 | 2761 | 1678245 | 95.3% |
+| preact | 1454492 | 197693 | 6663 | 1256799 | 86.4% |
+| rustlings | 500488 | 7695 | 676 | 492793 | 98.5% |
 
 ## Selected Focus Files
 

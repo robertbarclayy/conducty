@@ -52,6 +52,9 @@ const MAX_COMMITS_TO_SEARCH = 80;
 const MIN_CHANGED_FILES = 2;
 const MAX_CHANGED_FILES = 24;
 const CLONE_ATTEMPTS = 3;
+const WORKFLOW_PHASES = 4;
+const BASELINE_PHASE_PROMPT_TOKENS = 650;
+const CONDUCTY_WORKFLOW_OVERHEAD_TOKENS = 3200;
 
 function main() {
   const options = parseArgs(process.argv.slice(2));
@@ -114,11 +117,19 @@ function measureRepo(repo, tempRoot) {
   const focusedFiles = focusedContextFiles(repoDir, selected.changedFiles);
   const baseline = measureApproxTokens(allFiles);
   const focused = measureApproxTokens(focusedFiles);
+  const diff = measureApproxText(run("git", ["show", "--format=", "--unified=3", selected.commit], repoDir).stdout);
   const savedTokens = baseline.tokens - focused.tokens;
   const savedPercent = baseline.tokens > 0 ? (savedTokens / baseline.tokens) * 100 : 0;
+  const workflowBaselineTokens = (baseline.tokens * WORKFLOW_PHASES) + (BASELINE_PHASE_PROMPT_TOKENS * WORKFLOW_PHASES);
+  const workflowConductyTokens = (focused.tokens * 3) + diff.tokens + CONDUCTY_WORKFLOW_OVERHEAD_TOKENS;
+  const workflowSavedTokens = workflowBaselineTokens - workflowConductyTokens;
+  const workflowSavedPercent = workflowBaselineTokens > 0
+    ? (workflowSavedTokens / workflowBaselineTokens) * 100
+    : 0;
 
   if (focused.files === 0) throw new Error(`${repo.name}: focused context is empty`);
   if (savedTokens <= 0) throw new Error(`${repo.name}: focused context did not save tokens`);
+  if (workflowSavedTokens <= 0) throw new Error(`${repo.name}: workflow model did not save tokens`);
 
   return {
     ...repo,
@@ -127,8 +138,15 @@ function measureRepo(repo, tempRoot) {
     changedFiles: selected.changedFiles,
     baseline,
     focused,
+    diff,
     savedTokens,
-    savedPercent
+    savedPercent,
+    workflow: {
+      baselineTokens: workflowBaselineTokens,
+      conductyTokens: workflowConductyTokens,
+      savedTokens: workflowSavedTokens,
+      savedPercent: workflowSavedPercent
+    }
   };
 }
 
@@ -269,8 +287,16 @@ function measureApproxTokens(files) {
   for (const file of files) {
     chars += fs.readFileSync(file, "utf8").length;
   }
+  return measureApproxChars(chars, files.length);
+}
+
+function measureApproxText(text) {
+  return measureApproxChars(String(text || "").length, 1);
+}
+
+function measureApproxChars(chars, files) {
   return {
-    files: files.length,
+    files,
     chars,
     tokens: Math.ceil(chars / 4)
   };
@@ -300,12 +326,28 @@ function renderReport(rows) {
     acc.savedTokens += row.savedTokens;
     acc.baselineFiles += row.baseline.files;
     acc.focusedFiles += row.focused.files;
+    acc.workflowBaselineTokens += row.workflow.baselineTokens;
+    acc.workflowConductyTokens += row.workflow.conductyTokens;
+    acc.workflowSavedTokens += row.workflow.savedTokens;
     return acc;
-  }, { baselineTokens: 0, focusedTokens: 0, savedTokens: 0, baselineFiles: 0, focusedFiles: 0 });
+  }, {
+    baselineTokens: 0,
+    focusedTokens: 0,
+    savedTokens: 0,
+    baselineFiles: 0,
+    focusedFiles: 0,
+    workflowBaselineTokens: 0,
+    workflowConductyTokens: 0,
+    workflowSavedTokens: 0
+  });
   const aggregateSavings = totals.baselineTokens > 0
     ? (totals.savedTokens / totals.baselineTokens) * 100
     : 0;
   const medianSavings = median(rows.map((row) => row.savedPercent));
+  const workflowAggregateSavings = totals.workflowBaselineTokens > 0
+    ? (totals.workflowSavedTokens / totals.workflowBaselineTokens) * 100
+    : 0;
+  const workflowMedianSavings = median(rows.map((row) => row.workflow.savedPercent));
 
   return [
     "# Real-World Token Savings Benchmark",
@@ -316,9 +358,10 @@ function renderReport(rows) {
     "",
     "- **Baseline context:** every readable project text file in that checkout, excluding dependency, build, generated, binary/media, and lockfile surfaces.",
     "- **Conducty focused context:** the changed readable files for the selected commit plus root manifests such as `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `pubspec.yaml`, and `README.md` when present.",
+    "- **Workflow model:** a four-phase plan/execute/verify/review estimate. The naive baseline reloads whole-repo readable context in each phase; the Conducty path uses focused context for plan/execute/verify plus commit diff evidence for review, and is charged extra fixed overhead for plan, checkpoint, and verification notes.",
     "- **Token estimate:** `ceil(total UTF-8 characters / 4)` for a deterministic offline approximation.",
     "",
-    "This measures context-loading reduction for realistic focused tasks. It does not claim total model-billing savings, universal savings for every task, or that an agent never needs more context during debugging.",
+    "This measures context-loading and workflow-context reduction for realistic focused tasks. It does not claim exact provider billing, universal savings for every task, or that an agent never needs more context during debugging.",
     "",
     "## Summary",
     "",
@@ -330,8 +373,13 @@ function renderReport(rows) {
     `- Tokens saved: ${formatInteger(totals.savedTokens)}`,
     `- Aggregate savings: ${aggregateSavings.toFixed(1)}%`,
     `- Median per-repo savings: ${medianSavings.toFixed(1)}%`,
+    `- Workflow baseline tokens: ${formatInteger(totals.workflowBaselineTokens)}`,
+    `- Workflow Conducty tokens: ${formatInteger(totals.workflowConductyTokens)}`,
+    `- Workflow tokens saved: ${formatInteger(totals.workflowSavedTokens)}`,
+    `- Workflow aggregate savings: ${workflowAggregateSavings.toFixed(1)}%`,
+    `- Workflow median per-repo savings: ${workflowMedianSavings.toFixed(1)}%`,
     "",
-    "## Results",
+    "## Context Results",
     "",
     "| Repo | Commit | Focused change | Baseline files | Focused files | Baseline tokens | Focused tokens | Saved tokens | Saved % |",
     "|---|---|---|---:|---:|---:|---:|---:|---:|",
@@ -345,6 +393,21 @@ function renderReport(rows) {
       row.focused.tokens,
       row.savedTokens,
       `${row.savedPercent.toFixed(1)}%`
+    ]).map((cells) => `| ${cells.join(" | ")} |`),
+    "",
+    "## Workflow Results",
+    "",
+    `Formula: baseline = ${WORKFLOW_PHASES} * whole-repo tokens + ${BASELINE_PHASE_PROMPT_TOKENS} prompt tokens per phase. Conducty = 3 * focused tokens + commit diff tokens + ${CONDUCTY_WORKFLOW_OVERHEAD_TOKENS} plan/checkpoint/verification overhead tokens.`,
+    "",
+    "| Repo | Baseline workflow tokens | Conducty workflow tokens | Diff evidence tokens | Saved tokens | Saved % |",
+    "|---|---:|---:|---:|---:|---:|",
+    ...rows.map((row) => [
+      row.name,
+      row.workflow.baselineTokens,
+      row.workflow.conductyTokens,
+      row.diff.tokens,
+      row.workflow.savedTokens,
+      `${row.workflow.savedPercent.toFixed(1)}%`
     ]).map((cells) => `| ${cells.join(" | ")} |`),
     "",
     "## Selected Focus Files",
