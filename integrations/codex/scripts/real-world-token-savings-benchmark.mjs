@@ -54,6 +54,7 @@ const MAX_CHANGED_FILES = 24;
 const CLONE_ATTEMPTS = 3;
 const WORKFLOW_PHASES = 4;
 const BASELINE_PHASE_PROMPT_TOKENS = 650;
+const INITIAL_WORKFLOW_OVERHEAD_TOKENS = 0;
 const CONDUCTY_WORKFLOW_OVERHEAD_TOKENS = 3200;
 
 function main() {
@@ -121,15 +122,26 @@ function measureRepo(repo, tempRoot) {
   const savedTokens = baseline.tokens - focused.tokens;
   const savedPercent = baseline.tokens > 0 ? (savedTokens / baseline.tokens) * 100 : 0;
   const workflowBaselineTokens = (baseline.tokens * WORKFLOW_PHASES) + (BASELINE_PHASE_PROMPT_TOKENS * WORKFLOW_PHASES);
+  const initialWorkflowTokens = baseline.tokens + (focused.tokens * 3) + diff.tokens + INITIAL_WORKFLOW_OVERHEAD_TOKENS;
+  const initialWorkflowSavedTokens = workflowBaselineTokens - initialWorkflowTokens;
+  const initialWorkflowSavedPercent = workflowBaselineTokens > 0
+    ? (initialWorkflowSavedTokens / workflowBaselineTokens) * 100
+    : 0;
   const workflowConductyTokens = (focused.tokens * 3) + diff.tokens + CONDUCTY_WORKFLOW_OVERHEAD_TOKENS;
   const workflowSavedTokens = workflowBaselineTokens - workflowConductyTokens;
   const workflowSavedPercent = workflowBaselineTokens > 0
     ? (workflowSavedTokens / workflowBaselineTokens) * 100
     : 0;
+  const currentVsInitialSavedTokens = initialWorkflowTokens - workflowConductyTokens;
+  const currentVsInitialSavedPercent = initialWorkflowTokens > 0
+    ? (currentVsInitialSavedTokens / initialWorkflowTokens) * 100
+    : 0;
 
   if (focused.files === 0) throw new Error(`${repo.name}: focused context is empty`);
   if (savedTokens <= 0) throw new Error(`${repo.name}: focused context did not save tokens`);
+  if (initialWorkflowSavedTokens <= 0) throw new Error(`${repo.name}: initial workflow model did not save tokens`);
   if (workflowSavedTokens <= 0) throw new Error(`${repo.name}: workflow model did not save tokens`);
+  if (currentVsInitialSavedTokens <= 0) throw new Error(`${repo.name}: current workflow did not improve over initial architecture proxy`);
 
   return {
     ...repo,
@@ -141,11 +153,18 @@ function measureRepo(repo, tempRoot) {
     diff,
     savedTokens,
     savedPercent,
+    initialWorkflow: {
+      tokens: initialWorkflowTokens,
+      savedTokens: initialWorkflowSavedTokens,
+      savedPercent: initialWorkflowSavedPercent
+    },
     workflow: {
       baselineTokens: workflowBaselineTokens,
       conductyTokens: workflowConductyTokens,
       savedTokens: workflowSavedTokens,
-      savedPercent: workflowSavedPercent
+      savedPercent: workflowSavedPercent,
+      currentVsInitialSavedTokens,
+      currentVsInitialSavedPercent
     }
   };
 }
@@ -327,8 +346,11 @@ function renderReport(rows) {
     acc.baselineFiles += row.baseline.files;
     acc.focusedFiles += row.focused.files;
     acc.workflowBaselineTokens += row.workflow.baselineTokens;
+    acc.initialWorkflowTokens += row.initialWorkflow.tokens;
+    acc.initialWorkflowSavedTokens += row.initialWorkflow.savedTokens;
     acc.workflowConductyTokens += row.workflow.conductyTokens;
     acc.workflowSavedTokens += row.workflow.savedTokens;
+    acc.currentVsInitialSavedTokens += row.workflow.currentVsInitialSavedTokens;
     return acc;
   }, {
     baselineTokens: 0,
@@ -337,8 +359,11 @@ function renderReport(rows) {
     baselineFiles: 0,
     focusedFiles: 0,
     workflowBaselineTokens: 0,
+    initialWorkflowTokens: 0,
+    initialWorkflowSavedTokens: 0,
     workflowConductyTokens: 0,
-    workflowSavedTokens: 0
+    workflowSavedTokens: 0,
+    currentVsInitialSavedTokens: 0
   });
   const aggregateSavings = totals.baselineTokens > 0
     ? (totals.savedTokens / totals.baselineTokens) * 100
@@ -348,6 +373,14 @@ function renderReport(rows) {
     ? (totals.workflowSavedTokens / totals.workflowBaselineTokens) * 100
     : 0;
   const workflowMedianSavings = median(rows.map((row) => row.workflow.savedPercent));
+  const initialWorkflowAggregateSavings = totals.workflowBaselineTokens > 0
+    ? (totals.initialWorkflowSavedTokens / totals.workflowBaselineTokens) * 100
+    : 0;
+  const initialWorkflowMedianSavings = median(rows.map((row) => row.initialWorkflow.savedPercent));
+  const currentVsInitialAggregateSavings = totals.initialWorkflowTokens > 0
+    ? (totals.currentVsInitialSavedTokens / totals.initialWorkflowTokens) * 100
+    : 0;
+  const currentVsInitialMedianSavings = median(rows.map((row) => row.workflow.currentVsInitialSavedPercent));
 
   return [
     "# Real-World Token Savings Benchmark",
@@ -359,6 +392,7 @@ function renderReport(rows) {
     "- **Baseline context:** every readable project text file in that checkout, excluding dependency, build, generated, binary/media, and lockfile surfaces.",
     "- **Conducty focused context:** the changed readable files for the selected commit plus root manifests such as `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `pubspec.yaml`, and `README.md` when present.",
     "- **Workflow model:** a four-phase plan/execute/verify/review estimate. The naive baseline reloads whole-repo readable context in each phase; the Conducty path uses focused context for plan/execute/verify plus commit diff evidence for review, and is charged extra fixed overhead for plan, checkpoint, and verification notes.",
+    "- **Initial architecture proxy:** one broad `conducty-context` pass over readable repo context, then focused plan/execute/verify work and diff review. This is a generous proxy because it charges no extra overhead to the initial architecture.",
     "- **Token estimate:** `ceil(total UTF-8 characters / 4)` for a deterministic offline approximation.",
     "",
     "This measures context-loading and workflow-context reduction for realistic focused tasks. It does not claim exact provider billing, universal savings for every task, or that an agent never needs more context during debugging.",
@@ -374,10 +408,13 @@ function renderReport(rows) {
     `- Aggregate savings: ${aggregateSavings.toFixed(1)}%`,
     `- Median per-repo savings: ${medianSavings.toFixed(1)}%`,
     `- Workflow baseline tokens: ${formatInteger(totals.workflowBaselineTokens)}`,
+    `- Initial architecture workflow tokens: ${formatInteger(totals.initialWorkflowTokens)}`,
+    `- Initial architecture workflow savings: ${initialWorkflowAggregateSavings.toFixed(1)}%`,
     `- Workflow Conducty tokens: ${formatInteger(totals.workflowConductyTokens)}`,
     `- Workflow tokens saved: ${formatInteger(totals.workflowSavedTokens)}`,
     `- Workflow aggregate savings: ${workflowAggregateSavings.toFixed(1)}%`,
     `- Workflow median per-repo savings: ${workflowMedianSavings.toFixed(1)}%`,
+    `- Current architecture saved vs initial: ${formatInteger(totals.currentVsInitialSavedTokens)} tokens (${currentVsInitialAggregateSavings.toFixed(1)}%)`,
     "",
     "## Context Results",
     "",
@@ -395,19 +432,22 @@ function renderReport(rows) {
       `${row.savedPercent.toFixed(1)}%`
     ]).map((cells) => `| ${cells.join(" | ")} |`),
     "",
-    "## Workflow Results",
+    "## Architecture Workflow Comparison",
     "",
-    `Formula: baseline = ${WORKFLOW_PHASES} * whole-repo tokens + ${BASELINE_PHASE_PROMPT_TOKENS} prompt tokens per phase. Conducty = 3 * focused tokens + commit diff tokens + ${CONDUCTY_WORKFLOW_OVERHEAD_TOKENS} plan/checkpoint/verification overhead tokens.`,
+    `Formula: naive baseline = ${WORKFLOW_PHASES} * whole-repo tokens + ${BASELINE_PHASE_PROMPT_TOKENS} prompt tokens per phase. Initial architecture proxy = 1 * whole-repo tokens + 3 * focused tokens + commit diff tokens + ${INITIAL_WORKFLOW_OVERHEAD_TOKENS} overhead tokens. Current PR architecture = 3 * focused tokens + commit diff tokens + ${CONDUCTY_WORKFLOW_OVERHEAD_TOKENS} plan/checkpoint/verification overhead tokens.`,
     "",
-    "| Repo | Baseline workflow tokens | Conducty workflow tokens | Diff evidence tokens | Saved tokens | Saved % |",
-    "|---|---:|---:|---:|---:|---:|",
+    `Initial aggregate savings vs naive baseline: ${initialWorkflowAggregateSavings.toFixed(1)}%. Initial median per-repo savings: ${initialWorkflowMedianSavings.toFixed(1)}%. Current architecture aggregate savings vs initial proxy: ${currentVsInitialAggregateSavings.toFixed(1)}%. Current median per-repo savings vs initial proxy: ${currentVsInitialMedianSavings.toFixed(1)}%.`,
+    "",
+    "| Repo | Naive workflow tokens | Initial architecture tokens | Current PR tokens | Diff evidence tokens | Current saved vs initial | Current saved vs initial % |",
+    "|---|---:|---:|---:|---:|---:|---:|",
     ...rows.map((row) => [
       row.name,
       row.workflow.baselineTokens,
+      row.initialWorkflow.tokens,
       row.workflow.conductyTokens,
       row.diff.tokens,
-      row.workflow.savedTokens,
-      `${row.workflow.savedPercent.toFixed(1)}%`
+      row.workflow.currentVsInitialSavedTokens,
+      `${row.workflow.currentVsInitialSavedPercent.toFixed(1)}%`
     ]).map((cells) => `| ${cells.join(" | ")} |`),
     "",
     "## Selected Focus Files",

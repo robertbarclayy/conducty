@@ -1,12 +1,13 @@
 # Real-World Token Savings Benchmark
 
-Generated: 2026-05-05T19:31:17.264Z
+Generated: 2026-05-05T20:16:16.083Z
 
 This optional benchmark clones public repositories, selects one recent non-merge commit with a focused code change from each repo, and compares:
 
 - **Baseline context:** every readable project text file in that checkout, excluding dependency, build, generated, binary/media, and lockfile surfaces.
 - **Conducty focused context:** the changed readable files for the selected commit plus root manifests such as `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `pubspec.yaml`, and `README.md` when present.
 - **Workflow model:** a four-phase plan/execute/verify/review estimate. The naive baseline reloads whole-repo readable context in each phase; the Conducty path uses focused context for plan/execute/verify plus commit diff evidence for review, and is charged extra fixed overhead for plan, checkpoint, and verification notes.
+- **Initial architecture proxy:** one broad `conducty-context` pass over readable repo context, then focused plan/execute/verify work and diff review. This is a generous proxy because it charges no extra overhead to the initial architecture.
 - **Token estimate:** `ceil(total UTF-8 characters / 4)` for a deterministic offline approximation.
 
 This measures context-loading and workflow-context reduction for realistic focused tasks. It does not claim exact provider billing, universal savings for every task, or that an agent never needs more context during debugging.
@@ -22,10 +23,13 @@ This measures context-loading and workflow-context reduction for realistic focus
 - Aggregate savings: 96.5%
 - Median per-repo savings: 92.1%
 - Workflow baseline tokens: 19,730,228
+- Initial architecture workflow tokens: 5,457,937
+- Initial architecture workflow savings: 72.3%
 - Workflow Conducty tokens: 556,180
 - Workflow tokens saved: 19,174,048
 - Workflow aggregate savings: 97.2%
 - Workflow median per-repo savings: 93.6%
+- Current architecture saved vs initial: 4,901,757 tokens (89.8%)
 
 ## Context Results
 
@@ -40,20 +44,22 @@ This measures context-loading and workflow-context reduction for realistic focus
 | preact | 21dd6d04c1a9 | forwardport from v10 (#5053) | 283 | 15 | 362973 | 62610 | 300363 | 82.8% |
 | rustlings | 346753b673e0 | Make starting fireworks more fun :) | 275 | 4 | 124472 | 1273 | 123199 | 99.0% |
 
-## Workflow Results
+## Architecture Workflow Comparison
 
-Formula: baseline = 4 * whole-repo tokens + 650 prompt tokens per phase. Conducty = 3 * focused tokens + commit diff tokens + 3200 plan/checkpoint/verification overhead tokens.
+Formula: naive baseline = 4 * whole-repo tokens + 650 prompt tokens per phase. Initial architecture proxy = 1 * whole-repo tokens + 3 * focused tokens + commit diff tokens + 0 overhead tokens. Current PR architecture = 3 * focused tokens + commit diff tokens + 3200 plan/checkpoint/verification overhead tokens.
 
-| Repo | Baseline workflow tokens | Conducty workflow tokens | Diff evidence tokens | Saved tokens | Saved % |
-|---|---:|---:|---:|---:|---:|
-| flutterzon_bloc | 685548 | 57933 | 3574 | 627615 | 91.5% |
-| express | 726328 | 19191 | 340 | 707137 | 97.4% |
-| flask | 1189524 | 96684 | 340 | 1092840 | 91.9% |
-| fastapi | 13052356 | 58174 | 950 | 12994182 | 99.6% |
-| chi | 359724 | 35287 | 557 | 324437 | 90.2% |
-| redux | 1761768 | 83523 | 2761 | 1678245 | 95.3% |
-| preact | 1454492 | 197693 | 6663 | 1256799 | 86.4% |
-| rustlings | 500488 | 7695 | 676 | 492793 | 98.5% |
+Initial aggregate savings vs naive baseline: 72.3%. Initial median per-repo savings: 68.8%. Current architecture aggregate savings vs initial proxy: 89.8%. Current median per-repo savings vs initial proxy: 79.6%.
+
+| Repo | Naive workflow tokens | Initial architecture tokens | Current PR tokens | Diff evidence tokens | Current saved vs initial | Current saved vs initial % |
+|---|---:|---:|---:|---:|---:|---:|
+| flutterzon_bloc | 685548 | 225470 | 57933 | 3574 | 167537 | 74.3% |
+| express | 726328 | 196923 | 19191 | 340 | 177732 | 90.3% |
+| flask | 1189524 | 390215 | 96684 | 340 | 293531 | 75.2% |
+| fastapi | 13052356 | 3317413 | 58174 | 950 | 3259239 | 98.2% |
+| chi | 359724 | 121368 | 35287 | 557 | 86081 | 70.9% |
+| redux | 1761768 | 520115 | 83523 | 2761 | 436592 | 83.9% |
+| preact | 1454492 | 557466 | 197693 | 6663 | 359773 | 64.5% |
+| rustlings | 500488 | 128967 | 7695 | 676 | 121272 | 94.0% |
 
 ## Selected Focus Files
 

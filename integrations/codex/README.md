@@ -112,7 +112,7 @@ For broader evidence, run the optional networked benchmark:
 node scripts/real-world-token-savings-benchmark.mjs --output real-world-token-savings-benchmark.md
 ```
 
-The benchmark clones a fixed set of public repositories, selects one recent focused non-merge commit from each, compares whole-repo readable context against the changed files plus root manifests for that task, and includes a four-phase plan/execute/verify/review workflow estimate. It is intentionally not part of the local smoke suite because it depends on network access and live GitHub repositories. The checked-in benchmark report is a dated evidence snapshot, not a universal guarantee or exact provider-billing trace.
+The benchmark clones a fixed set of public repositories, selects one recent focused non-merge commit from each, compares whole-repo readable context against the changed files plus root manifests for that task, and includes a four-phase plan/execute/verify/review workflow estimate. It also compares a generous initial Conducty architecture proxy against the current PR architecture so the added measurement layer has visible before/after evidence. It is intentionally not part of the local smoke suite because it depends on network access and live GitHub repositories. The checked-in benchmark report is a dated evidence snapshot, not a universal guarantee or exact provider-billing trace.
 
 ## What the MCP Server Adds
 
