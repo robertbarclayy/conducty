@@ -1088,7 +1088,7 @@ function recordTokenSavingsTool(args) {
   const evidence = toList(args.evidence);
   const row = [
     now.date,
-    planLink,
+    args.plan ? markdownTableWikilink(planLink) : "none",
     markdownTableCell(args.scenario),
     formatTokenCount(baselineTokens),
     formatTokenCount(conductyTokens),
@@ -1345,7 +1345,8 @@ function generateObservatoryReportTool(args) {
     `- Improvements last 30 days: ${summary.learning.improvementsLast30Days}`,
     `- Token savings entries: ${summary.learning.tokenSavings.entries}`,
     `- Measured tokens saved: ${summary.learning.tokenSavings.savedTokens}`,
-    `- Measured savings rate: ${summary.learning.tokenSavings.savingsRate.toFixed(1)}%`
+    `- Measured savings rate: ${summary.learning.tokenSavings.savingsRate.toFixed(1)}%`,
+    `- Savings regressions: ${summary.learning.tokenSavings.regressions}`
   ].join("\n");
 }
 
@@ -1924,6 +1925,12 @@ function wikilink(value) {
   if (!raw) return "[[Unknown Plan]]";
   if (raw.startsWith("[[") && raw.endsWith("]]")) return raw;
   return `[[${path.basename(raw, path.extname(raw))}]]`;
+}
+
+function markdownTableWikilink(value) {
+  const link = wikilink(value);
+  const match = /^\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/.exec(link);
+  return markdownTableCell(match ? `[[${match[1]}]]` : link);
 }
 
 function plainWikilinks(value) {
