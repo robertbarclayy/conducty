@@ -101,7 +101,7 @@ try {
 
   const tools = await request("tools/list");
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
-  for (const required of ["bootstrap_vault", "get_kernel", "assess_kernel_state", "create_kernel_contract", "create_plan", "check_prompt_smells", "log_prompt_outcome", "record_checkpoint", "record_improvement", "create_ship_report", "audit_vault_graph", "generate_observatory_report"]) {
+  for (const required of ["bootstrap_vault", "get_kernel", "assess_kernel_state", "create_kernel_contract", "create_plan", "check_prompt_smells", "log_prompt_outcome", "record_checkpoint", "record_improvement", "record_token_savings", "create_ship_report", "audit_vault_graph", "generate_observatory_report"]) {
     if (!toolNames.has(required)) throw new Error(`Missing tool: ${required}`);
   }
 
@@ -115,6 +115,9 @@ try {
   }
   if (!fs.existsSync(path.join(tempVault, "Indexes", "Kernel Contracts Index.md"))) {
     throw new Error("bootstrap_vault did not create Kernel Contracts Index.md");
+  }
+  if (!fs.existsSync(path.join(tempVault, "Accumulators", "Token Savings Ledger.md"))) {
+    throw new Error("bootstrap_vault did not create Token Savings Ledger.md");
   }
 
   const kernel = await request("tools/call", {
@@ -251,6 +254,28 @@ try {
     throw new Error("record_checkpoint did not append inside Checkpoint Notes");
   }
 
+  const savings = await request("tools/call", {
+    name: "record_token_savings",
+    arguments: {
+      vault: tempVault,
+      plan: plans[0],
+      scenario: "Smoke baseline vs Conducty run",
+      baselineTokens: 10000,
+      conductyTokens: 6500,
+      method: "Synthetic smoke-test fixture with explicit token counts",
+      evidence: ["baseline=10000", "conducty=6500"],
+      notes: "Proof ledger stores measured comparison rows."
+    }
+  });
+  const savingsText = savings.content?.[0]?.text || "";
+  if (!savingsText.includes("Token Savings Recorded") || !savingsText.includes("Tokens saved: 3500")) {
+    throw new Error(`record_token_savings did not report computed savings:\n${savingsText}`);
+  }
+  const savingsLedger = fs.readFileSync(path.join(tempVault, "Accumulators", "Token Savings Ledger.md"), "utf8");
+  if (!savingsLedger.includes("Smoke baseline vs Conducty run") || !savingsLedger.includes("| 10000 | 6500 | 3500 | 35.0% |")) {
+    throw new Error("record_token_savings did not write the expected ledger row");
+  }
+
   await request("tools/call", {
     name: "record_improvement",
     arguments: {
@@ -319,7 +344,7 @@ try {
     throw new Error("generate_observatory_report did not write Observatory.html");
   }
   const observatoryHtml = fs.readFileSync(observatoryPath, "utf8");
-  if (!observatoryHtml.includes("Conducty Observatory") || !observatoryHtml.includes("Learning Loop")) {
+  if (!observatoryHtml.includes("Conducty Observatory") || !observatoryHtml.includes("Learning Loop") || !observatoryHtml.includes("Measured tokens saved")) {
     throw new Error("Observatory report did not include expected sections");
   }
 

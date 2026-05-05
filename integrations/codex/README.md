@@ -9,8 +9,9 @@ This directory packages Conducty for Codex as:
 - a one-command local installer
 - a doctor that diagnoses plugin, vault, marketplace, and MCP health
 - a zero-dependency Observatory report for local vault visibility
+- a measured token-savings ledger for baseline-vs-Conducty comparisons
 
-The integration preserves Conducty's existing vault contract. Plans, improvements, prompt logs, metrics, and indexes are still regular Markdown notes in the Obsidian vault.
+The integration preserves Conducty's existing vault contract. Plans, improvements, prompt logs, metrics, token-savings measurements, and indexes are still regular Markdown notes in the Obsidian vault.
 
 ## Install
 
@@ -83,7 +84,25 @@ Generate a local HTML snapshot of the Conducty vault:
 node scripts/observatory.mjs --vault "$CONDUCTY_VAULT"
 ```
 
-By default the report is written to `Conducty Observatory.html` inside the vault. It summarizes open plans, shipped plans, missing checkpoints, plans without ship reports, broken wikilinks, duplicate note names, prompt outcomes, recent failure patterns, ship verdicts, and improvement velocity. The MCP server exposes the same engine as `generate_observatory_report` so Codex can create the report without shelling out.
+By default the report is written to `Conducty Observatory.html` inside the vault. It summarizes open plans, shipped plans, missing checkpoints, plans without ship reports, broken wikilinks, duplicate note names, prompt outcomes, recent failure patterns, measured token savings, ship verdicts, and improvement velocity. The MCP server exposes the same engine as `generate_observatory_report` so Codex can create the report without shelling out.
+
+## Token Savings Proof
+
+Conducty should not claim token savings without measurements. The `record_token_savings` MCP tool writes measured baseline-vs-Conducty comparisons to `Accumulators/Token Savings Ledger.md` and computes saved tokens plus percentage saved.
+
+Use it when you can compare a non-Conducty baseline against a Conducty-assisted run:
+
+```json
+{
+  "scenario": "Repeat context baseline vs Conducty plan",
+  "baselineTokens": 100000,
+  "conductyTokens": 52000,
+  "method": "Transcript token counts from comparable task runs",
+  "evidence": ["baseline transcript total", "Conducty transcript total"]
+}
+```
+
+The Observatory aggregates the ledger so token-saving claims stay tied to evidence. This is measurement infrastructure, not an automatic guarantee that every task saves tokens.
 
 ## What the MCP Server Adds
 
@@ -101,6 +120,7 @@ The MCP server turns Conducty's state operations into deterministic tools:
 - `log_prompt_outcome`: prepend a terse entry to `Prompt Log`
 - `record_checkpoint`: append group health metrics to the plan note
 - `record_improvement`: write an improvement kata note and update `Improvements Index`
+- `record_token_savings`: append a measured baseline-vs-Conducty token comparison to `Token Savings Ledger`
 - `create_ship_report`: write a green/yellow/red pre-merge verdict with verification evidence, residual risks, and next steps
 - `audit_vault_graph`: report broken wikilinks, duplicate basenames, orphan user notes, plans without ship reports, and plans without checkpoints
 - `generate_observatory_report`: write a static HTML report that makes plan closure, vault graph health, and learning velocity visible
@@ -127,7 +147,7 @@ node scripts/install-codex-test.mjs
 node scripts/observatory-test.mjs
 ```
 
-The smoke test creates a temporary vault, initializes the server over stdio, lists tools, reads the kernel summary, assesses a kernel state, writes a kernel contract, creates a plan, checks prompt smells, logs a prompt outcome, records a checkpoint, writes an improvement note, writes a ship report, audits the vault graph, generates an Observatory report, checks duplicate-name allocation, and deletes the temporary vault. The NDJSON probe drives a minimal `initialize` -> `tools/list` -> `tools/call` flow and proves legal callers still work after framing/path changes. The path-safety test asserts that `safeVaultPath` and `findPlanPath` reject symlinked candidate paths and traversal attempts while still allowing a symlinked vault root. The installer test runs the local installer against a temporary Codex config and verifies table updates stay idempotent without clobbering unrelated TOML tables. The Observatory test builds a representative fake vault and asserts the HTML and JSON summaries expose the expected closure, graph, and learning-loop signals.
+The smoke test creates a temporary vault, initializes the server over stdio, lists tools, reads the kernel summary, assesses a kernel state, writes a kernel contract, creates a plan, checks prompt smells, logs a prompt outcome, records a checkpoint, records a token-savings measurement, writes an improvement note, writes a ship report, audits the vault graph, generates an Observatory report, checks duplicate-name allocation, and deletes the temporary vault. The NDJSON probe drives a minimal `initialize` -> `tools/list` -> `tools/call` flow and proves legal callers still work after framing/path changes. The path-safety test asserts that `safeVaultPath` and `findPlanPath` reject symlinked candidate paths and traversal attempts while still allowing a symlinked vault root. The installer test runs the local installer against a temporary Codex config and verifies table updates stay idempotent without clobbering unrelated TOML tables. The Observatory test builds a representative fake vault and asserts the HTML and JSON summaries expose the expected closure, graph, token-savings, and learning-loop signals.
 
 ## Manual MCP Run
 

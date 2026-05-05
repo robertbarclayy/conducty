@@ -20,8 +20,9 @@ For substantial or risky work, treat Conducty as a closed-loop kernel: assess st
 7. Log each prompt result with `log_prompt_outcome`.
 8. Record group health with `record_checkpoint`.
 9. Record learning with `record_improvement` when the plan ends or a failure pattern appears.
-10. Create a pre-merge ship report with `create_ship_report` when verification evidence and residual risks are known.
-11. Audit the vault with `audit_vault_graph` when notes, links, or closure signals need a health check.
+10. Record measured token savings with `record_token_savings` only when a baseline and Conducty-assisted token count are available.
+11. Create a pre-merge ship report with `create_ship_report` when verification evidence and residual risks are known.
+12. Audit the vault with `audit_vault_graph` when notes, links, or closure signals need a health check.
 
 ## Codex Boundaries
 
@@ -60,6 +61,7 @@ Tracer: yes
 - `log_prompt_outcome`: prepend a terse entry to `Prompt Log`.
 - `record_checkpoint`: append group health metrics to the plan note.
 - `record_improvement`: write an improvement kata note and update `Improvements Index`.
+- `record_token_savings`: append a measured baseline-vs-Conducty token comparison to `Token Savings Ledger`.
 - `create_ship_report`: write a green/yellow/red pre-merge verdict with verification evidence and residual risks.
 - `audit_vault_graph`: report broken wikilinks, duplicate basenames, orphan user notes, plans without ship reports, and plans without checkpoints.
 

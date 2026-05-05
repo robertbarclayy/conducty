@@ -249,6 +249,25 @@ const TOOLS = [
     handler: recordImprovementTool
   },
   {
+    name: "record_token_savings",
+    description: "Append a measured baseline-vs-Conducty token savings entry to Accumulators/Token Savings Ledger.md.",
+    inputSchema: {
+      type: "object",
+      required: ["scenario", "baselineTokens", "conductyTokens", "method"],
+      properties: {
+        vault: { type: "string" },
+        plan: { type: "string", description: "Optional plan title, wikilink basename, or path." },
+        scenario: { type: "string", description: "Short name for the measured task or workflow." },
+        baselineTokens: { type: "number", description: "Measured or estimated tokens for the comparable non-Conducty baseline." },
+        conductyTokens: { type: "number", description: "Measured tokens for the Conducty-assisted run." },
+        method: { type: "string", description: "How the measurement was collected." },
+        evidence: { type: "array", items: { type: "string" } },
+        notes: { type: "string" }
+      }
+    },
+    handler: recordTokenSavingsTool
+  },
+  {
     name: "create_ship_report",
     description: "Write a pre-merge ship report with verdict, verification evidence, risks, and next steps.",
     inputSchema: {
@@ -341,7 +360,8 @@ function bootstrapVaultTool(args) {
     "- Indexes/Ship Reports Index.md",
     "- Accumulators/Failure Patterns.md",
     "- Accumulators/Metrics.md",
-    "- Accumulators/Prompt Log.md"
+    "- Accumulators/Prompt Log.md",
+    "- Accumulators/Token Savings Ledger.md"
   ].join("\n");
 }
 
@@ -1046,6 +1066,54 @@ function recordImprovementTool(args) {
   ].join("\n");
 }
 
+function recordTokenSavingsTool(args) {
+  requireString(args.scenario, "scenario");
+  requireString(args.method, "method");
+  const baselineTokens = Number(args.baselineTokens);
+  const conductyTokens = Number(args.conductyTokens);
+  if (!Number.isFinite(baselineTokens) || baselineTokens <= 0) {
+    throw new Error("baselineTokens must be a positive number.");
+  }
+  if (!Number.isFinite(conductyTokens) || conductyTokens < 0) {
+    throw new Error("conductyTokens must be a non-negative number.");
+  }
+
+  const vault = resolveVault(args);
+  bootstrapVault(vault.path);
+  const ledgerPath = safeVaultPath(vault.path, path.join("Accumulators", "Token Savings Ledger.md"));
+  const now = timestamp();
+  const savedTokens = baselineTokens - conductyTokens;
+  const savedPercent = (savedTokens / baselineTokens) * 100;
+  const planLink = args.plan ? wikilink(args.plan) : "none";
+  const evidence = toList(args.evidence);
+  const row = [
+    now.date,
+    planLink,
+    markdownTableCell(args.scenario),
+    formatTokenCount(baselineTokens),
+    formatTokenCount(conductyTokens),
+    formatTokenCount(savedTokens),
+    `${savedPercent.toFixed(1)}%`,
+    markdownTableCell(args.method),
+    markdownTableCell(evidence.join("; ") || "not recorded"),
+    markdownTableCell(stringOr(args.notes, ""))
+  ].join(" | ");
+
+  prependTableRow(ledgerPath, `| ${row} |`);
+
+  return [
+    "# Token Savings Recorded",
+    "",
+    `Scenario: ${args.scenario.trim()}`,
+    `Plan: ${planLink}`,
+    `Baseline tokens: ${formatTokenCount(baselineTokens)}`,
+    `Conducty tokens: ${formatTokenCount(conductyTokens)}`,
+    `Tokens saved: ${formatTokenCount(savedTokens)}`,
+    `Savings rate: ${savedPercent.toFixed(1)}%`,
+    `Ledger: ${ledgerPath}`
+  ].join("\n");
+}
+
 function createShipReportTool(args) {
   requireString(args.plan, "plan");
   requireString(args.verdict, "verdict");
@@ -1274,7 +1342,10 @@ function generateObservatoryReportTool(args) {
     `- Broken wikilinks: ${summary.wikilinks.broken}`,
     `- Duplicate basenames: ${summary.wikilinks.duplicateBasenames}`,
     `- Improvements last 7 days: ${summary.learning.improvementsLast7Days}`,
-    `- Improvements last 30 days: ${summary.learning.improvementsLast30Days}`
+    `- Improvements last 30 days: ${summary.learning.improvementsLast30Days}`,
+    `- Token savings entries: ${summary.learning.tokenSavings.entries}`,
+    `- Measured tokens saved: ${summary.learning.tokenSavings.savedTokens}`,
+    `- Measured savings rate: ${summary.learning.tokenSavings.savingsRate.toFixed(1)}%`
   ].join("\n");
 }
 
@@ -1319,6 +1390,7 @@ function bootstrapVault(vaultPath) {
     "- [[Failure Patterns]]",
     "- [[Metrics]]",
     "- [[Prompt Log]]",
+    "- [[Token Savings Ledger]]",
     ""
   ].join("\n"));
 
@@ -1344,6 +1416,20 @@ function bootstrapVault(vaultPath) {
     ""
   ].join("\n"));
   seedNote(path.join(vaultPath, "Accumulators", "Prompt Log.md"), accumulatorNote("prompt-log", "Prompt Log", "Newest first."));
+  seedNote(path.join(vaultPath, "Accumulators", "Token Savings Ledger.md"), [
+    "---",
+    "type: token-savings-ledger",
+    "tags: [conducty, conducty/token-savings]",
+    "---",
+    "",
+    "# Token Savings Ledger",
+    "",
+    "Measured baseline-vs-Conducty token usage. Newest first.",
+    "",
+    "| Date | Plan | Scenario | Baseline Tokens | Conducty Tokens | Saved Tokens | Saved % | Method | Evidence | Notes |",
+    "|---|---|---|---:|---:|---:|---:|---|---|---|",
+    ""
+  ].join("\n"));
 }
 
 function indexNote(title, description) {
@@ -1522,6 +1608,22 @@ function prependAfterHeading(filePath, line) {
     lines.push("", line);
   } else {
     lines.splice(insertAt, 0, line);
+  }
+  fs.writeFileSync(filePath, lines.join("\n"), "utf8");
+}
+
+function prependTableRow(filePath, row) {
+  const existing = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : "";
+  if (!existing.trim()) {
+    fs.writeFileSync(filePath, `${row}\n`, "utf8");
+    return;
+  }
+  const lines = existing.split(/\r?\n/);
+  const delimiterIndex = lines.findIndex((line) => /^\|\s*-+/.test(line));
+  if (delimiterIndex === -1) {
+    lines.push("", row);
+  } else {
+    lines.splice(delimiterIndex + 1, 0, row);
   }
   fs.writeFileSync(filePath, lines.join("\n"), "utf8");
 }
@@ -1836,6 +1938,20 @@ function toList(value) {
 
 function bulletList(items) {
   return items.map((item) => `- ${item}`);
+}
+
+function markdownTableCell(value) {
+  return String(value || "")
+    .replace(/\r?\n/g, " ")
+    .replace(/\|/g, "/")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatTokenCount(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "0";
+  return String(Math.round(number));
 }
 
 function stringOr(value, fallback) {

@@ -101,6 +101,9 @@ export function analyzeVault(vaultPath, options = {}) {
 
   const promptLog = notes.find((note) => displayPath(note.relPath) === "Accumulators/Prompt Log.md");
   const promptOutcomes = summarizePromptOutcomes(promptLog?.text || "");
+  const tokenSavings = summarizeTokenSavings(
+    notes.find((note) => displayPath(note.relPath) === "Accumulators/Token Savings Ledger.md")?.text || ""
+  );
   const failurePatterns = extractRecentBullets(
     notes.find((note) => displayPath(note.relPath) === "Accumulators/Failure Patterns.md")?.text || "",
     limit
@@ -136,6 +139,7 @@ export function analyzeVault(vaultPath, options = {}) {
     plansWithoutCheckpoints,
     plansWithoutShipReports,
     promptOutcomes,
+    tokenSavings,
     failurePatterns,
     improvementVelocity,
     recentImprovements,
@@ -169,7 +173,8 @@ export function summarizeAnalysis(analysis, outputPath) {
       improvementsLast7Days: analysis.improvementVelocity.last7Days,
       improvementsLast30Days: analysis.improvementVelocity.last30Days,
       promptOutcomes: analysis.promptOutcomes,
-      recentFailurePatterns: analysis.failurePatterns.length
+      recentFailurePatterns: analysis.failurePatterns.length,
+      tokenSavings: analysis.tokenSavings
     },
     shipReports: {
       total: analysis.shipReports.length,
@@ -204,7 +209,8 @@ export function renderObservatory(analysis) {
     ["Missing checkpoints", analysis.plansWithoutCheckpoints.length],
     ["Broken links", analysis.brokenWikilinks.length],
     ["Duplicate names", analysis.duplicateBasenames.length],
-    ["Improvements", analysis.improvementVelocity.total]
+    ["Improvements", analysis.improvementVelocity.total],
+    ["Tokens saved", formatInteger(analysis.tokenSavings.savedTokens)]
   ];
 
   return `<!doctype html>
@@ -373,6 +379,10 @@ export function renderObservatory(analysis) {
               <tr><td>Last 7 days</td><td>${analysis.improvementVelocity.last7Days}</td></tr>
               <tr><td>Last 30 days</td><td>${analysis.improvementVelocity.last30Days}</td></tr>
               <tr><td>Prompt outcomes</td><td>${renderPromptOutcomes(analysis.promptOutcomes)}</td></tr>
+              <tr><td>Token savings entries</td><td>${analysis.tokenSavings.entries}</td></tr>
+              <tr><td>Measured tokens saved</td><td>${formatInteger(analysis.tokenSavings.savedTokens)}</td></tr>
+              <tr><td>Measured savings rate</td><td>${formatPercent(analysis.tokenSavings.savingsRate)}</td></tr>
+              <tr><td>Savings regressions</td><td>${analysis.tokenSavings.regressions}</td></tr>
             </tbody>
           </table>
         </div>
@@ -600,6 +610,35 @@ function summarizePromptOutcomes(text) {
   return counts;
 }
 
+function summarizeTokenSavings(text) {
+  const summary = {
+    entries: 0,
+    baselineTokens: 0,
+    conductyTokens: 0,
+    savedTokens: 0,
+    savingsRate: 0,
+    regressions: 0
+  };
+  for (const line of text.split(/\r?\n/)) {
+    if (!line.startsWith("|") || line.includes("---") || /Baseline Tokens/i.test(line)) continue;
+    const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+    if (cells.length < 7) continue;
+    const baseline = parseTokenNumber(cells[3]);
+    const conducty = parseTokenNumber(cells[4]);
+    const saved = parseTokenNumber(cells[5]);
+    if (!Number.isFinite(baseline) || !Number.isFinite(conducty) || !Number.isFinite(saved)) continue;
+    summary.entries += 1;
+    summary.baselineTokens += baseline;
+    summary.conductyTokens += conducty;
+    summary.savedTokens += saved;
+    if (saved < 0) summary.regressions += 1;
+  }
+  summary.savingsRate = summary.baselineTokens > 0
+    ? (summary.savedTokens / summary.baselineTokens) * 100
+    : 0;
+  return summary;
+}
+
 function extractRecentBullets(text, limit) {
   return text
     .split(/\r?\n/)
@@ -728,6 +767,23 @@ function formatDateTime(date) {
 function formatDate(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "unknown";
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function formatInteger(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "0";
+  return Math.round(number).toLocaleString("en-US");
+}
+
+function formatPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "0.0%";
+  return `${number.toFixed(1)}%`;
+}
+
+function parseTokenNumber(value) {
+  const number = Number(String(value || "").replace(/,/g, ""));
+  return Number.isFinite(number) ? number : NaN;
 }
 
 function normalizePositiveInteger(value, fallback) {

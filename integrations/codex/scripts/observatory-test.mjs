@@ -109,6 +109,15 @@ try {
     ""
   ].join("\n"));
 
+  writeNote("Accumulators/Token Savings Ledger.md", [
+    "# Token Savings Ledger",
+    "",
+    "| Date | Plan | Scenario | Baseline Tokens | Conducty Tokens | Saved Tokens | Saved % | Method | Evidence | Notes |",
+    "|---|---|---|---:|---:|---:|---:|---|---|---|",
+    "| 2026-05-03 | [[Plan 2026-05-02 1100 Shipped Feature]] | Repeat context baseline | 10000 | 6500 | 3500 | 35.0% | manual transcript count | baseline and Conducty transcript totals | measured smoke fixture |",
+    ""
+  ].join("\n"));
+
   writeNote("Improvements/Improvement 2026-05-03 1230.md", [
     "---",
     "type: improvement",
@@ -139,6 +148,7 @@ try {
   assert(html.includes("Attention Queue"), "HTML includes attention queue");
   assert(html.includes("Missing checkpoint"), "HTML includes missing checkpoint signal");
   assert(html.includes("Missing Context Note"), "HTML includes broken wikilink target");
+  assert(html.includes("Measured tokens saved"), "HTML includes token savings signal");
 
   const summary = result.summary;
   assert(summary.plans.total === 2, `expected 2 plans, got ${summary.plans.total}`);
@@ -150,6 +160,9 @@ try {
   assert(summary.learning.improvementsLast7Days === 1, `expected 1 recent improvement, got ${summary.learning.improvementsLast7Days}`);
   assert(summary.learning.promptOutcomes.DONE === 1, "expected DONE prompt outcome");
   assert(summary.learning.promptOutcomes.FAILED === 1, "expected FAILED prompt outcome");
+  assert(summary.learning.tokenSavings.entries === 1, "expected one token savings entry");
+  assert(summary.learning.tokenSavings.savedTokens === 3500, "expected 3500 saved tokens");
+  assert(summary.learning.tokenSavings.savingsRate === 35, "expected 35% savings rate");
   assert(summary.shipReports.verdicts.green === 1, "expected one green ship report");
 
   const cliOutput = path.join(tempRoot, "cli-observatory.html");

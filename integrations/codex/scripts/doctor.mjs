@@ -20,6 +20,7 @@ const REQUIRED_VAULT_PATHS = [
   path.join("Accumulators", "Failure Patterns.md"),
   path.join("Accumulators", "Metrics.md"),
   path.join("Accumulators", "Prompt Log.md"),
+  path.join("Accumulators", "Token Savings Ledger.md"),
   "Plans",
   "Designs",
   "Improvements",
@@ -339,6 +340,7 @@ function bootstrapVault(vaultPath) {
     "- [[Failure Patterns]]",
     "- [[Metrics]]",
     "- [[Prompt Log]]",
+    "- [[Token Savings Ledger]]",
     ""
   ].join("\n"));
   seed(path.join(vaultPath, "Indexes", "Plans Index.md"), indexNote("Plans Index", "Conducty plans. Newest first."));
@@ -359,6 +361,20 @@ function bootstrapVault(vaultPath) {
     "",
     "| Date | Plan | Prompts | Done | Pass Rate | Retries | Appetite | Note |",
     "|---|---|---:|---:|---:|---:|---|---|",
+    ""
+  ].join("\n"));
+  seed(path.join(vaultPath, "Accumulators", "Token Savings Ledger.md"), [
+    "---",
+    "type: token-savings-ledger",
+    "tags: [conducty, conducty/token-savings]",
+    "---",
+    "",
+    "# Token Savings Ledger",
+    "",
+    "Measured baseline-vs-Conducty token usage. Newest first.",
+    "",
+    "| Date | Plan | Scenario | Baseline Tokens | Conducty Tokens | Saved Tokens | Saved % | Method | Evidence | Notes |",
+    "|---|---|---|---:|---:|---:|---:|---|---|---|",
     ""
   ].join("\n"));
 }
