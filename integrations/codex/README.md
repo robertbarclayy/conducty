@@ -104,6 +104,16 @@ Use it when you can compare a non-Conducty baseline against a Conducty-assisted 
 
 The Observatory aggregates the ledger so token-saving claims stay tied to evidence. This is measurement infrastructure, not an automatic guarantee that every task saves tokens.
 
+## Optional Real-World Benchmark
+
+For broader evidence, run the optional networked benchmark:
+
+```bash
+node scripts/real-world-token-savings-benchmark.mjs --output real-world-token-savings-benchmark.md
+```
+
+The benchmark clones a fixed set of public repositories, selects one recent focused non-merge commit from each, and compares whole-repo readable context against the changed files plus root manifests for that task. It is intentionally not part of the local smoke suite because it depends on network access and live GitHub repositories. The checked-in benchmark report is a dated evidence snapshot, not a universal guarantee.
+
 ## What the MCP Server Adds
 
 The MCP server turns Conducty's state operations into deterministic tools:
