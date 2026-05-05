@@ -13,6 +13,9 @@ const serverPath = path.join(pluginRoot, "mcp", "server.mjs");
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "conducty-token-savings-test-"));
 const repoRoot = path.join(tempRoot, "fixture-repo");
 const vault = path.join(tempRoot, "vault");
+const FEATURE_COUNT = 500;
+const MIN_BASELINE_FILES = 1500;
+const MIN_BASELINE_TOKENS = 3000000;
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Assertion failed: ${message}`);
@@ -117,7 +120,7 @@ function buildFixtureRepo() {
     ""
   ].join("\n"));
 
-  for (let feature = 1; feature <= 48; feature += 1) {
+  for (let feature = 1; feature <= FEATURE_COUNT; feature += 1) {
     writeFile(`lib/src/features/feature_${feature}/screen.dart`, [
       `class Feature${feature}Screen {`,
       `  final title = 'Feature ${feature}';`,
@@ -278,7 +281,8 @@ try {
   const savedTokens = baseline.tokens - focused.tokens;
   const savedPercent = (savedTokens / baseline.tokens) * 100;
 
-  assert(baseline.files >= 150, `expected broad fixture repo, got ${baseline.files} readable files`);
+  assert(baseline.files >= MIN_BASELINE_FILES, `expected large fixture repo, got ${baseline.files} readable files`);
+  assert(baseline.tokens >= MIN_BASELINE_TOKENS, `expected multi-million-token baseline, got ${baseline.tokens} tokens`);
   assert(focused.files === 7, `expected 7 focused files, got ${focused.files}`);
   assert(savedPercent >= 95, `expected at least 95% context savings, got ${savedPercent.toFixed(1)}%`);
 
@@ -323,15 +327,16 @@ try {
         scenario: "Synthetic full-stack JWT secret backend fix",
         baselineTokens: baseline.tokens,
         conductyTokens: focused.tokens,
-        method: "Approx tokens = readable fixture text characters / 4. Baseline scanned all readable project files; Conducty focused context used only task-relevant backend auth/config/test files.",
+        method: `Approx tokens = readable fixture text characters / 4. Baseline scanned ${baseline.files} readable files from a generated ${FEATURE_COUNT}-feature full-stack fixture; Conducty focused context used only task-relevant backend auth/config/test files.`,
         evidence: [
           `baseline files=${baseline.files}`,
           `focused files=${focused.files}`,
           `baseline tokens=${baseline.tokens}`,
           `focused tokens=${focused.tokens}`,
+          `fixture features=${FEATURE_COUNT}`,
           "focused backend syntax checks passed"
         ],
-        notes: "Deterministic offline regression test for task-context measurement, not a universal savings guarantee."
+        notes: "Large deterministic offline regression test for task-context measurement, not a universal savings guarantee."
       }
     });
     const savingsText = savings.content?.[0]?.text || "";
@@ -365,6 +370,7 @@ try {
 
   console.log([
     "conducty-codex token savings test passed",
+    `fixture=${FEATURE_COUNT} generated features`,
     `baseline=${baseline.tokens} tokens across ${baseline.files} files`,
     `focused=${focused.tokens} tokens across ${focused.files} files`,
     `saved=${savedTokens} tokens (${savedPercent.toFixed(1)}%)`
