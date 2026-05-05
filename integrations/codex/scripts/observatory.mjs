@@ -620,9 +620,10 @@ function summarizeTokenSavings(text) {
     regressions: 0
   };
   for (const line of text.split(/\r?\n/)) {
-    if (!line.startsWith("|") || line.includes("---") || /Baseline Tokens/i.test(line)) continue;
+    if (!line.startsWith("|") || /^\|\s*-+/.test(line)) continue;
     const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
     if (cells.length < 7) continue;
+    if (/^date$/i.test(cells[0]) || /Baseline Tokens/i.test(cells[3])) continue;
     const baseline = parseTokenNumber(cells[3]);
     const conducty = parseTokenNumber(cells[4]);
     const saved = parseTokenNumber(cells[5]);
