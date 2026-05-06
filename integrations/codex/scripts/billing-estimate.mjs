@@ -36,7 +36,7 @@ const MODEL_RATES = [
 
 const DEFAULT_BENCHMARKS = [
   {
-    name: "OpenClaw historical replay stress",
+    name: "OpenClaw 200-commit historical replay stress",
     file: path.join(INTEGRATION_DIR, "openclaw-historical-replay-benchmark.md")
   },
   {
