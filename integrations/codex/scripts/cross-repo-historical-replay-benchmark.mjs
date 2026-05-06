@@ -16,6 +16,9 @@ const DEFAULT_REPOS = [
   { name: "rustlings", url: "https://github.com/rust-lang/rustlings.git" }
 ];
 
+const DEFAULT_REPORT_TITLE = "Final Cross-Repo Historical Replay Benchmark";
+const DEFAULT_SCOPE_NOTE = "the default run covers React, Flutter, Node, Python, Go, TypeScript, Preact, and Rust training repos.";
+
 const TEXT_EXTENSIONS = new Set([
   ".cjs", ".cfg", ".css", ".dart", ".flow", ".go", ".gradle", ".graphql",
   ".html", ".ini", ".java", ".js", ".json", ".jsx", ".kt", ".md", ".mdx",
@@ -86,9 +89,9 @@ function main() {
   fs.mkdirSync(tempRoot, { recursive: true });
 
   try {
-    const repoResults = DEFAULT_REPOS.map((repo) => measureRepo(repo, tempRoot, options.commitsPerRepo));
+    const repoResults = options.repos.map((repo) => measureRepo(repo, tempRoot, options));
     const rows = repoResults.flatMap((result) => result.rows);
-    const report = renderReport(repoResults, rows);
+    const report = renderReport(repoResults, rows, options);
     if (options.output) {
       const outputPath = path.resolve(options.output);
       fs.mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -105,28 +108,51 @@ function parseArgs(args) {
     keep: false,
     output: "",
     workdir: "",
-    commitsPerRepo: COMMITS_PER_REPO
+    commitsPerRepo: COMMITS_PER_REPO,
+    cloneDepth: CLONE_DEPTH,
+    maxCommitsToSearch: MAX_COMMITS_TO_SEARCH,
+    repos: [],
+    reportTitle: "",
+    scopeNote: ""
   };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--keep") options.keep = true;
     else if (arg === "--output") options.output = requireValue(args, ++index, "--output");
     else if (arg === "--workdir") options.workdir = requireValue(args, ++index, "--workdir");
+    else if (arg === "--repo") options.repos.push(parseRepoSpec(requireValue(args, ++index, "--repo")));
+    else if (arg === "--title") options.reportTitle = requireValue(args, ++index, "--title");
+    else if (arg === "--scope-note") options.scopeNote = requireValue(args, ++index, "--scope-note");
+    else if (arg === "--clone-depth") options.cloneDepth = normalizePositiveInteger(requireValue(args, ++index, "--clone-depth"), CLONE_DEPTH);
+    else if (arg === "--max-commits-to-search") {
+      options.maxCommitsToSearch = normalizePositiveInteger(requireValue(args, ++index, "--max-commits-to-search"), MAX_COMMITS_TO_SEARCH);
+    }
     else if (arg === "--commits-per-repo") {
       options.commitsPerRepo = normalizePositiveInteger(requireValue(args, ++index, "--commits-per-repo"), COMMITS_PER_REPO);
     } else if (arg === "--help") {
       console.log([
-        "Usage: node scripts/cross-repo-historical-replay-benchmark.mjs [--output <file>] [--commits-per-repo <n>] [--keep] [--workdir <dir>]",
+        "Usage: node scripts/cross-repo-historical-replay-benchmark.mjs [--output <file>] [--commits-per-repo <n>] [--repo <name=url>] [--keep] [--workdir <dir>]",
         "",
         "Clones a fixed set of public repositories without checkout, selects focused",
         "recent non-merge commits, creates parent-state focused workspaces, applies",
         "the real historical patches, and verifies replayed files exactly match the",
-        "target commits."
+        "target commits.",
+        "",
+        "Repeat --repo to run a custom repository set. A repo value can be",
+        "name=https://github.com/org/repo.git or just a Git URL."
       ].join("\n"));
       process.exit(0);
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
+  }
+  if (!options.repos.length) {
+    options.repos = DEFAULT_REPOS;
+    options.reportTitle ||= DEFAULT_REPORT_TITLE;
+    options.scopeNote ||= DEFAULT_SCOPE_NOTE;
+  } else {
+    options.reportTitle ||= `${options.repos.map((repo) => repo.name).join(", ")} Historical Replay Benchmark`;
+    options.scopeNote ||= `this custom run covers ${options.repos.map((repo) => repo.url).join(", ")}.`;
   }
   return options;
 }
@@ -142,11 +168,33 @@ function normalizePositiveInteger(value, fallback) {
   return Math.floor(number);
 }
 
-function measureRepo(repo, tempRoot, commitsPerRepo) {
-  const repoDir = path.join(tempRoot, repo.name);
-  cloneRepo(repo, repoDir, tempRoot);
+function parseRepoSpec(spec) {
+  const value = String(spec || "").trim();
+  if (!value) throw new Error("--repo requires a non-empty value.");
+  const equalIndex = value.indexOf("=");
+  if (equalIndex !== -1) {
+    return {
+      name: normalizeRepoName(value.slice(0, equalIndex)),
+      url: value.slice(equalIndex + 1)
+    };
+  }
+  return {
+    name: normalizeRepoName(value.replace(/\.git$/, "").split(/[\\/]/).pop() || "repo"),
+    url: value
+  };
+}
 
-  const candidates = candidateCommits(repo, repoDir);
+function normalizeRepoName(value) {
+  const name = String(value || "").trim().replace(/[^a-zA-Z0-9_.-]/g, "-");
+  if (!name) throw new Error("Repository name resolved to an empty value.");
+  return name;
+}
+
+function measureRepo(repo, tempRoot, options) {
+  const repoDir = path.join(tempRoot, repo.name);
+  cloneRepo(repo, repoDir, tempRoot, options.cloneDepth);
+
+  const candidates = candidateCommits(repo, repoDir, options.maxCommitsToSearch);
   const rows = [];
   const skipped = [];
 
@@ -161,21 +209,21 @@ function measureRepo(repo, tempRoot, commitsPerRepo) {
         reason: firstLine(error instanceof Error ? error.message : String(error))
       });
     }
-    if (rows.length >= commitsPerRepo) break;
+    if (rows.length >= options.commitsPerRepo) break;
   }
 
-  if (rows.length < commitsPerRepo) {
+  if (rows.length < options.commitsPerRepo) {
     const reasons = skipped
       .slice(0, 8)
       .map((skip) => `${skip.commit.slice(0, 12)}: ${skip.reason}`)
       .join("\n");
-    throw new Error(`${repo.name}: expected ${commitsPerRepo} replayable commits, got ${rows.length}.${reasons ? `\n${reasons}` : ""}`);
+    throw new Error(`${repo.name}: expected ${options.commitsPerRepo} replayable commits, got ${rows.length}.${reasons ? `\n${reasons}` : ""}`);
   }
 
   return { repo, rows, skipped };
 }
 
-function cloneRepo(repo, repoDir, tempRoot) {
+function cloneRepo(repo, repoDir, tempRoot, cloneDepth) {
   let lastError;
   for (let attempt = 1; attempt <= CLONE_ATTEMPTS; attempt += 1) {
     fs.rmSync(repoDir, { recursive: true, force: true });
@@ -185,7 +233,7 @@ function cloneRepo(repo, repoDir, tempRoot) {
       "clone",
       "--no-checkout",
       "--depth",
-      String(CLONE_DEPTH),
+      String(cloneDepth),
       "--no-tags",
       repo.url,
       repoDir
@@ -206,11 +254,11 @@ function cloneRepo(repo, repoDir, tempRoot) {
   throw new Error(lastError || `git clone ${repo.url} failed`);
 }
 
-function candidateCommits(repo, repoDir) {
+function candidateCommits(repo, repoDir, maxCommitsToSearch) {
   const log = run("git", [
     "log",
     "--no-merges",
-    `--max-count=${MAX_COMMITS_TO_SEARCH}`,
+    `--max-count=${maxCommitsToSearch}`,
     "--format=%H%x09%s"
   ], repoDir).stdout.trim();
   if (!log) throw new Error(`${repo.name}: no commits found.`);
@@ -572,7 +620,7 @@ function runWithInput(command, args, cwd, input) {
   return result;
 }
 
-function renderReport(repoResults, rows) {
+function renderReport(repoResults, rows, options) {
   const totals = rows.reduce((acc, row) => {
     acc.baselineFiles += row.baseline.files;
     acc.focusedFiles += row.focused.files;
@@ -614,21 +662,21 @@ function renderReport(repoResults, rows) {
   const currentVsInitialSavings = percent(totals.currentVsInitialSavedTokens, totals.initialWorkflowTokens);
 
   return [
-    "# Final Cross-Repo Historical Replay Benchmark",
+    `# ${asciiText(options.reportTitle)}`,
     "",
     `Generated: ${new Date().toISOString()}`,
     "",
-    "This benchmark is the strictest checked-in evidence snapshot for the Conducty Codex integration. It samples recent focused non-merge commits across public repositories and languages, creates parent-state focused workspaces, applies the real historical patches, and verifies every replayed file exactly matches the target commit.",
+    "This benchmark is a strict checked-in evidence snapshot for the Conducty Codex integration. It samples recent focused non-merge commits across the configured repository set, creates parent-state focused workspaces, applies the real historical patches, and verifies every replayed file exactly matches the target commit.",
     "",
     "- **Replay gate:** a row counts only if the historical patch applies to parent-state files and reproduces target-state files byte-for-byte.",
     "- **Host checkout guard:** replay tries the default Git apply behavior first, then an LF-pinned mode, and still accepts only byte-exact target archive matches.",
-    "- **Cross-repo gate:** the default run covers React, Flutter, Node, Python, Go, TypeScript, Preact, and Rust training repos.",
+    `- **Repository gate:** ${asciiText(options.scopeNote)}`,
     "- **Naive baseline:** reload whole-repo readable context for plan, execute, verify, and review.",
     "- **Initial Conducty proxy:** one broad `conducty-context` pass over readable repo context, then focused plan/execute/verify work and diff review. This proxy is generous because it charges zero extra overhead.",
     `- **Current PR architecture:** focused plan/execute/verify context plus diff evidence and ${CONDUCTY_WORKFLOW_OVERHEAD_TOKENS} fixed tokens for plan/checkpoint/verification overhead.`,
     "- **Token estimate:** `ceil(total UTF-8 characters / 4)`, deterministic and offline.",
     "",
-    "This is still not an autonomous-agent success benchmark, product-wide guarantee, or exact provider-billing trace. It is a deterministic cross-repo historical patch replay benchmark with exact target-file verification.",
+    "This is still not an autonomous-agent success benchmark, product-wide guarantee, or exact provider-billing trace. It is a deterministic historical patch replay benchmark with exact target-file verification.",
     "",
     "## Summary",
     "",

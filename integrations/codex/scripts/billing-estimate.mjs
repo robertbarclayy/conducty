@@ -36,6 +36,10 @@ const MODEL_RATES = [
 
 const DEFAULT_BENCHMARKS = [
   {
+    name: "OpenClaw historical replay stress",
+    file: path.join(INTEGRATION_DIR, "openclaw-historical-replay-benchmark.md")
+  },
+  {
     name: "Final cross-repo historical replay",
     file: path.join(INTEGRATION_DIR, "cross-repo-historical-replay-benchmark.md")
   },
@@ -229,7 +233,7 @@ function renderReport(benchmarks) {
     "## Interpretation",
     "",
     "- The billing signal is real as an input-context estimate: fewer input tokens at a fixed model price means lower input-token cost.",
-    "- The final cross-repo replay benchmark estimates a GPT-5.4 input-cost drop from $62.56 to $3.34 for that measured workflow shape.",
+    `- The primary benchmark estimates a GPT-5.4 input-cost drop from ${currency(cost(primary.initialTokens, MODEL_RATES[1].inputPerMillion))} to ${currency(cost(primary.currentTokens, MODEL_RATES[1].inputPerMillion))} for that measured workflow shape.`,
     "- This is not an invoice-level claim because output tokens and provider-specific cache behavior were not measured.",
     "- To turn this into exact billing proof, run paired live API tasks with usage logs for baseline and Conducty workflows, then feed those actual billed input/output tokens into this report."
   ].filter((line) => line !== null && line !== undefined).join("\n");
@@ -282,7 +286,10 @@ function formatInteger(value) {
 }
 
 function currency(value) {
-  return `$${value.toFixed(2)}`;
+  return `$${value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
 }
 
 function currencyRate(value) {

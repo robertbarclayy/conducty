@@ -1,6 +1,6 @@
 # Billing Estimate From Token Benchmarks
 
-Generated: 2026-05-06T13:46:51.207Z
+Generated: 2026-05-06T14:07:24.334Z
 
 This report converts checked-in Conducty token benchmark results into input-token cost estimates. It does not call a paid model API, does not read an OpenAI invoice, and does not include output tokens, tool calls, web search, file storage, retries, or provider-side caching. Exact billing proof requires real API usage logs for comparable task runs.
 
@@ -18,21 +18,21 @@ Only the standard input-token rate is used in the estimates below because the be
 
 ## Main Billing Result
 
-Primary benchmark: Final cross-repo historical replay
+Primary benchmark: OpenClaw historical replay stress
 
-- Initial architecture workflow tokens: 25,023,609
-- Current PR workflow tokens: 1,334,391
-- Input tokens avoided vs initial: 23,689,218 (94.7%)
-- Naive workflow tokens: 95,034,072
-- Current PR savings vs naive: 98.6%
-- Replay pass rate: 18/18
-- Target files verified exactly: 88
+- Initial architecture workflow tokens: 885,307,090
+- Current PR workflow tokens: 6,130,143
+- Input tokens avoided vs initial: 879,176,947 (99.3%)
+- Naive workflow tokens: 3,517,169,788
+- Current PR savings vs naive: 99.8%
+- Replay pass rate: 30/30
+- Target files verified exactly: 92
 
 | Model | Initial input cost | Current PR input cost | Saved vs initial | Naive input cost | Saved vs naive |
 |---|---:|---:|---:|---:|---:|
-| GPT-5.5 | $125.12 | $6.67 | $118.45 | $475.17 | $468.50 |
-| GPT-5.4 | $62.56 | $3.34 | $59.22 | $237.59 | $234.25 |
-| GPT-5.4 mini | $18.77 | $1.00 | $17.77 | $71.28 | $70.27 |
+| GPT-5.5 | $4,426.54 | $30.65 | $4,395.88 | $17,585.85 | $17,555.20 |
+| GPT-5.4 | $2,213.27 | $15.33 | $2,197.94 | $8,792.92 | $8,777.60 |
+| GPT-5.4 mini | $663.98 | $4.60 | $659.38 | $2,637.88 | $2,633.28 |
 
 ## All Benchmark Estimates
 
@@ -40,6 +40,7 @@ These rows should not be summed as independent billing proof because some report
 
 | Benchmark | Initial tokens | Current tokens | Saved vs initial | GPT-5.4 mini saved | GPT-5.4 saved | GPT-5.5 saved | Replay evidence |
 |---|---:|---:|---:|---:|---:|---:|---|
+| OpenClaw historical replay stress | 885,307,090 | 6,130,143 | 879,176,947 (99.3%) | $659.38 | $2,197.94 | $4,395.88 | replay 30/30, 92 files |
 | Final cross-repo historical replay | 25,023,609 | 1,334,391 | 23,689,218 (94.7%) | $17.77 | $59.22 | $118.45 | replay 18/18, 88 files |
 | Meta React historical replay | 82,546,849 | 2,186,605 | 80,360,244 (97.4%) | $60.27 | $200.90 | $401.80 | replay 12/12, 64 files |
 | Meta React focused workflow | 137,284,764 | 3,206,472 | 134,078,292 (97.7%) | $100.56 | $335.20 | $670.39 | context benchmark |
@@ -48,6 +49,6 @@ These rows should not be summed as independent billing proof because some report
 ## Interpretation
 
 - The billing signal is real as an input-context estimate: fewer input tokens at a fixed model price means lower input-token cost.
-- The final cross-repo replay benchmark estimates a GPT-5.4 input-cost drop from $62.56 to $3.34 for that measured workflow shape.
+- The primary benchmark estimates a GPT-5.4 input-cost drop from $2,213.27 to $15.33 for that measured workflow shape.
 - This is not an invoice-level claim because output tokens and provider-specific cache behavior were not measured.
 - To turn this into exact billing proof, run paired live API tasks with usage logs for baseline and Conducty workflows, then feed those actual billed input/output tokens into this report.
