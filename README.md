@@ -129,6 +129,8 @@ The MCP server exposes deterministic vault tools for the parts of Conducty that 
 - generate a local Observatory HTML report for plan closure, graph health, and learning velocity
 - list recent vault notes
 
+The checked-in Codex reports now separate three evidence types: historical replay/token-savings measurements, official SWE-bench Pro preflight readiness, and blind issue-solving attempts. The blind benchmark is deliberately strict: hidden focused tests can pass while the result is still marked partial if the historical gold patch shows a missed UI, CLI, server-construction, or other product surface.
+
 Install the local Codex plugin:
 
 ```bash
