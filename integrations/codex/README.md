@@ -110,9 +110,10 @@ For broader evidence, run the optional networked benchmark:
 
 ```bash
 node scripts/real-world-token-savings-benchmark.mjs --output real-world-token-savings-benchmark.md
+node scripts/react-token-savings-benchmark.mjs --output react-token-savings-benchmark.md
 ```
 
-The benchmark clones a fixed set of public repositories, selects one recent focused non-merge commit from each, compares whole-repo readable context against the changed files plus root manifests for that task, and includes a four-phase plan/execute/verify/review workflow estimate. It also compares a generous initial Conducty architecture proxy against the current PR architecture so the added measurement layer has visible before/after evidence. It is intentionally not part of the local smoke suite because it depends on network access and live GitHub repositories. The checked-in benchmark report is a dated evidence snapshot, not a universal guarantee or exact provider-billing trace.
+The benchmark clones a fixed set of public repositories, selects one recent focused non-merge commit from each, compares whole-repo readable context against the changed files plus root manifests for that task, and includes a four-phase plan/execute/verify/review workflow estimate. It also compares a generous initial Conducty architecture proxy against the current PR architecture so the added measurement layer has visible before/after evidence. The React benchmark applies the same architecture comparison to multiple recent focused commits in Meta's public `facebook/react` repository. These benchmarks are intentionally not part of the local smoke suite because they depend on network access and live GitHub repositories. The checked-in benchmark reports are dated evidence snapshots, not universal guarantees or exact provider-billing traces.
 
 ## What the MCP Server Adds
 
