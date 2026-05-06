@@ -16,6 +16,8 @@ alwaysApply: true
 
 **Prompt quality is leverage.** Everything downstream compensates for bad prompts. Invest upstream: clear acceptance criteria, scoped context, concrete verification. Check for prompt smells before finalizing any plan.
 
+**Plan gate before execution.** Use [[conducty-plan-audit]] before tracer execution. A red gate stops the plan; a yellow gate gets revised or explicitly accepted; a green gate spends agent time.
+
 **Evidence before claims.** No completion claims without fresh verification output. Use [[conducty-verify]]. Rigor scales with risk: verify-only for low, spec review for medium, full two-stage for high.
 
 **Root cause before fixes.** When a prompt fails, ask WHERE the leverage point is: prompt quality, plan quality, or code quality. Fix at the highest level. Use [[conducty-debug]]. Three failures on the same prompt = circuit breaker — escalate.

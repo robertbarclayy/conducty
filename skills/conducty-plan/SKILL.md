@@ -11,7 +11,9 @@ tags:
 
 # Conducty Plan — Batch Planning
 
-Generate a structured plan of time-budgeted prompts organized into parallel groups with tracer markers, calibrated review levels, and prompt quality checks.
+Generate a structured plan of time-budgeted prompts organized into parallel groups with tracer markers, calibrated review levels, prompt quality checks, and a pre-execution plan gate.
+
+For serious, risky, stale-context, or parallel work, run [[conducty-kernel]] before finalizing. The kernel contract supplies state, risk score, invariant gaps, required evidence, and next-skill routing; the plan turns that contract into prompt groups.
 
 A plan is a unit of work, not a calendar boundary. Run a fresh plan whenever you start a new orchestration cycle — multiple plans per day are normal. Each plan note is named `Plans/Plan YYYY-MM-DD HHmm [Topic].md` and lives in the Obsidian vault.
 
@@ -126,7 +128,7 @@ Not every prompt needs the same review overhead:
 | **Medium** | `spec-review` | Run verification + dispatch spec compliance reviewer. |
 | **High** | `full-review` | Run verification + spec compliance + code quality review. |
 
-This is more efficient than blanket two-stage review for everything. Reserve ceremony for work that warrants it.
+This is more efficient than blanket two-stage review for everything. Reserve ceremony for work that warrants it. When [[conducty-kernel]] produced a numeric risk score, use that score as the review-level source of truth: 0-34 verify-only, 35-64 spec-review, 65+ full-review.
 
 #### 5d: Mark Tracers
 
@@ -190,7 +192,27 @@ Show the user the generated plan. Ask:
 
 Iterate until satisfied, then write the final version to the vault.
 
-### Step 10: Execution Handoff
+### Step 10: Plan Quality Gate
+
+Run [[conducty-plan-audit]] against the finalized plan before execution handoff. The audit checks the whole plan, not just individual prompt smells:
+
+- appetite and scope fit
+- goal and acceptance clarity
+- prompt independence inside groups
+- tracer coverage and tracer quality
+- concrete verification for every prompt
+- no-go zones and scoped context
+- review-level calibration
+- visible carry-forward from recent `[[Failure Patterns]]`, `[[Metrics]]`, and `[[Improvement YYYY-MM-DD HHmm]]`
+
+Write the gate result into the plan's `## Plan Quality Gate` section.
+
+Gate handling:
+- **green**: proceed to execution
+- **yellow**: revise the plan unless the user explicitly accepts the risk
+- **red**: stop and reshape or rebuild the plan before execution
+
+### Step 11: Execution Handoff
 
 After the plan is finalized:
 
@@ -210,4 +232,5 @@ After the plan is finalized:
 - **No-go zones in every prompt** — prevent the most common failure mode (agent scope creep)
 - **Learn from the vault** — prior failure patterns and improvement experiments visibly shape this plan's prompts
 - **Prompt smells get fixed before execution** — a smelly prompt is a wasted slot
+- **Plan gate before execution** — [[conducty-plan-audit]] must be green, or deliberately revised/accepted, before tracer execution
 - **Index discipline** — every new plan is prepended to `[[Plans Index]]` in the same action that creates it

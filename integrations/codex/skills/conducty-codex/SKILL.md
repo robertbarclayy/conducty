@@ -7,18 +7,22 @@ description: Always-on Conducty orchestration for Codex. Use by default for codi
 
 Use this skill to run Conducty's loop inside Codex: Shape -> Plan -> Trace -> Execute -> Verify -> Improve -> Code Review -> Ship.
 
+For substantial or risky work, treat Conducty as a closed-loop kernel: assess state, route the next skill, score risk, check invariants, require evidence, and record learning that changes the next plan.
+
 ## Default Moves
 
 1. Resolve the vault with `resolve_vault`; if it does not exist, call `bootstrap_vault`.
-2. Shape the request: goal, appetite, no-go zones, acceptance criteria, verification.
-3. Check prompt quality with `check_prompt_smells` before writing or dispatching prompts.
-4. Create a plan with `create_plan`. Every plan needs a tracer and a verification command.
-5. Execute the tracer first. If it fails, revise the plan before broader execution.
-6. Log each prompt result with `log_prompt_outcome`.
-7. Record group health with `record_checkpoint`.
-8. Record learning with `record_improvement` when the plan ends or a failure pattern appears.
-9. Create a pre-merge ship report with `create_ship_report` when verification evidence and residual risks are known.
-10. Audit the vault with `audit_vault_graph` when notes, links, or closure signals need a health check.
+2. For serious work, call `assess_kernel_state`; for durable risk/state decisions, call `create_kernel_contract`.
+3. Shape the request: goal, appetite, no-go zones, acceptance criteria, verification.
+4. Check prompt quality with `check_prompt_smells` before writing or dispatching prompts.
+5. Create a plan with `create_plan`. Every plan needs a tracer and a verification command.
+6. Execute the tracer first. If it fails, revise the plan before broader execution.
+7. Log each prompt result with `log_prompt_outcome`.
+8. Record group health with `record_checkpoint`.
+9. Record learning with `record_improvement` when the plan ends or a failure pattern appears.
+10. Record measured token savings with `record_token_savings` only when a baseline and Conducty-assisted token count are available.
+11. Create a pre-merge ship report with `create_ship_report` when verification evidence and residual risks are known.
+12. Audit the vault with `audit_vault_graph` when notes, links, or closure signals need a health check.
 
 ## Codex Boundaries
 
@@ -48,12 +52,16 @@ Tracer: yes
 - `resolve_vault`: show active vault path and whether it exists.
 - `bootstrap_vault`: create Conducty vault indexes, accumulators, and note folders.
 - `get_cycle`: return the operating loop and phase routing.
+- `get_kernel`: return the closed-loop kernel architecture and vocabulary.
+- `assess_kernel_state`: infer state, next skill, risk score, invariant violations, and evidence requirements.
+- `create_kernel_contract`: write a durable kernel state/risk/evidence contract note.
 - `check_prompt_smells`: find missing acceptance, context, verification, no-go zones, and mixed concerns.
 - `create_plan`: write a timestamped plan note and update `Plans Index`.
-- `list_recent_notes`: list recent plans, improvements, code reviews, ship reports, or accumulator notes.
+- `list_recent_notes`: list recent plans, improvements, code reviews, ship reports, kernel contracts, or accumulator notes.
 - `log_prompt_outcome`: prepend a terse entry to `Prompt Log`.
 - `record_checkpoint`: append group health metrics to the plan note.
 - `record_improvement`: write an improvement kata note and update `Improvements Index`.
+- `record_token_savings`: append a measured baseline-vs-Conducty token comparison to `Token Savings Ledger`.
 - `create_ship_report`: write a green/yellow/red pre-merge verdict with verification evidence and residual risks.
 - `audit_vault_graph`: report broken wikilinks, duplicate basenames, orphan user notes, plans without ship reports, and plans without checkpoints.
 

@@ -106,6 +106,41 @@ tags: [conducty, conducty/plan]
   - **Depends on**: P1
   - (same fields as above)
 
+## Plan Quality Gate
+
+<!-- Filled by [[conducty-plan-audit]] before execution. Red stops. Yellow revises. Green executes. -->
+
+- **Verdict**: pending
+- **Score**: — / 100
+- **Audited at**: pending
+- **Execution decision**: pending
+
+### Must Fix Before Execute
+
+- Pending audit
+
+### Should Improve
+
+- Pending audit
+
+### Carry-Forward Checked
+
+- **Latest improvement used**: pending
+- **Relevant failure patterns**: pending
+- **Metrics signal**: pending
+
+### Tracer Assessment
+
+- Pending audit
+
+### Verification Assessment
+
+- Pending audit
+
+### Review Calibration
+
+- Pending audit
+
 ## Checkpoint Notes
 
 <!-- Filled between groups by [[conducty-checkpoint]] -->

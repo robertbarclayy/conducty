@@ -12,13 +12,17 @@ alwaysApply: true
 
 Conducty follows a per-plan cycle: **Shape → Plan → Trace → Execute → Verify → Improve**. Each phase has a dedicated skill. You are always somewhere in this cycle. Multiple plans per day are normal — each plan note is timestamped (`Plan YYYY-MM-DD HHmm [Topic].md`).
 
-All Conducty state — plans, designs, context, improvements, failure patterns, metrics, prompt logs — lives in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). Read [[conducty-obsidian]] before any state I/O.
+Use [[conducty-kernel]] when state, risk, next-skill routing, contract gaps, invariant violations, or required evidence are unclear. The kernel owns the state machine, skill router, contracts, risk score, invariant gate, evidence object, and policy-update loop.
+
+All Conducty state — plans, designs, context, kernel contracts, improvements, failure patterns, metrics, prompt logs — lives in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). Read [[conducty-obsidian]] before any state I/O.
 
 Before starting work, list the vault for the latest `Plans/Plan *.md` note (sort by `date` then `time` frontmatter). If one is active, reference it to understand the current prompt, its scoped context, time budget, and verification step.
 
 **Shape:** For non-trivial goals, use [[conducty-shape]] to define appetite, scope, no-go zones, and design before planning. For architectural decisions, use [[conducty-dialectic]].
 
 **Plan:** Use [[conducty-plan]] to decompose goals into time-budgeted prompts with parallel groups, tracer markers, and calibrated review levels.
+
+**Plan Gate:** Use [[conducty-plan-audit]] before execution. A green gate proceeds to tracer execution; a yellow gate revises or requires explicit risk acceptance; a red gate stops and routes back to [[conducty-shape]] or [[conducty-plan]].
 
 **Trace + Execute:** Use [[conducty-execute]] to run prompts. The first prompt in each group is a tracer — if it fails, re-evaluate the plan before running the rest. Review rigor scales with risk: verify-only for low, spec review for medium, full two-stage for high.
 

@@ -101,7 +101,7 @@ try {
 
   const tools = await request("tools/list");
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
-  for (const required of ["bootstrap_vault", "create_plan", "check_prompt_smells", "log_prompt_outcome", "record_checkpoint", "record_improvement", "create_ship_report", "audit_vault_graph"]) {
+  for (const required of ["bootstrap_vault", "get_kernel", "assess_kernel_state", "create_kernel_contract", "create_plan", "check_prompt_smells", "log_prompt_outcome", "record_checkpoint", "record_improvement", "record_token_savings", "create_ship_report", "audit_vault_graph", "generate_observatory_report"]) {
     if (!toolNames.has(required)) throw new Error(`Missing tool: ${required}`);
   }
 
@@ -112,6 +112,61 @@ try {
 
   if (!fs.existsSync(path.join(tempVault, "Conducty Index.md"))) {
     throw new Error("bootstrap_vault did not create Conducty Index.md");
+  }
+  if (!fs.existsSync(path.join(tempVault, "Indexes", "Kernel Contracts Index.md"))) {
+    throw new Error("bootstrap_vault did not create Kernel Contracts Index.md");
+  }
+  if (!fs.existsSync(path.join(tempVault, "Accumulators", "Token Savings Ledger.md"))) {
+    throw new Error("bootstrap_vault did not create Token Savings Ledger.md");
+  }
+
+  const kernel = await request("tools/call", {
+    name: "get_kernel",
+    arguments: { terse: true }
+  });
+  const kernelText = kernel.content?.[0]?.text || "";
+  if (!kernelText.includes("Kernel")) {
+    throw new Error("get_kernel did not return the kernel summary");
+  }
+
+  const assessment = await request("tools/call", {
+    name: "assess_kernel_state",
+    arguments: {
+      goal: "Add a safer release workflow.",
+      acceptanceCriteria: ["Risk is scored", "Next skill is routed"],
+      noGoZones: ["No deploy automation"],
+      context: ["README.md", "integrations/codex/mcp/server.mjs"],
+      verification: "node scripts/smoke-test.mjs",
+      changedFiles: ["integrations/codex/mcp/server.mjs"],
+      contextFreshness: "fresh",
+      hasActivePlan: false
+    }
+  });
+  const assessmentText = assessment.content?.[0]?.text || "";
+  if (!assessmentText.includes("Risk:") || !assessmentText.includes("Next skill:")) {
+    throw new Error(`assess_kernel_state did not return routing and risk:\n${assessmentText}`);
+  }
+
+  const contract = await request("tools/call", {
+    name: "create_kernel_contract",
+    arguments: {
+      vault: tempVault,
+      goal: "Add a safer release workflow.",
+      topic: "Smoke Kernel",
+      acceptanceCriteria: ["Kernel note exists", "Kernel Contracts Index links it"],
+      noGoZones: ["No deploy automation"],
+      context: ["README.md"],
+      verification: "node scripts/smoke-test.mjs",
+      contextFreshness: "fresh"
+    }
+  });
+  const contractText = contract.content?.[0]?.text || "";
+  if (!contractText.includes("Kernel Contract Created")) {
+    throw new Error("create_kernel_contract did not report success");
+  }
+  const kernelContracts = fs.readdirSync(path.join(tempVault, "Kernel Contracts")).filter((file) => file.endsWith(".md"));
+  if (kernelContracts.length !== 1) {
+    throw new Error("create_kernel_contract did not create exactly one kernel contract");
   }
 
   const plan = await request("tools/call", {
@@ -199,6 +254,28 @@ try {
     throw new Error("record_checkpoint did not append inside Checkpoint Notes");
   }
 
+  const savings = await request("tools/call", {
+    name: "record_token_savings",
+    arguments: {
+      vault: tempVault,
+      plan: plans[0],
+      scenario: "Smoke baseline vs Conducty run",
+      baselineTokens: 10000,
+      conductyTokens: 6500,
+      method: "Synthetic smoke-test fixture with explicit token counts",
+      evidence: ["baseline=10000", "conducty=6500"],
+      notes: "Proof ledger stores measured comparison rows."
+    }
+  });
+  const savingsText = savings.content?.[0]?.text || "";
+  if (!savingsText.includes("Token Savings Recorded") || !savingsText.includes("Tokens saved: 3500")) {
+    throw new Error(`record_token_savings did not report computed savings:\n${savingsText}`);
+  }
+  const savingsLedger = fs.readFileSync(path.join(tempVault, "Accumulators", "Token Savings Ledger.md"), "utf8");
+  if (!savingsLedger.includes("Smoke baseline vs Conducty run") || !savingsLedger.includes("| 10000 | 6500 | 3500 | 35.0% |")) {
+    throw new Error("record_token_savings did not write the expected ledger row");
+  }
+
   await request("tools/call", {
     name: "record_improvement",
     arguments: {
@@ -248,6 +325,27 @@ try {
   const auditText = audit.content?.[0]?.text || "";
   if (!auditText.includes("Verdict: clean")) {
     throw new Error(`audit_vault_graph expected a clean vault, got:\n${auditText}`);
+  }
+
+  const observatory = await request("tools/call", {
+    name: "generate_observatory_report",
+    arguments: {
+      vault: tempVault,
+      output: "Observatory.html",
+      limit: 5
+    }
+  });
+  const observatoryText = observatory.content?.[0]?.text || "";
+  if (!observatoryText.includes("Conducty Observatory Generated")) {
+    throw new Error(`generate_observatory_report did not report success:\n${observatoryText}`);
+  }
+  const observatoryPath = path.join(tempVault, "Observatory.html");
+  if (!fs.existsSync(observatoryPath)) {
+    throw new Error("generate_observatory_report did not write Observatory.html");
+  }
+  const observatoryHtml = fs.readFileSync(observatoryPath, "utf8");
+  if (!observatoryHtml.includes("Conducty Observatory") || !observatoryHtml.includes("Learning Loop") || !observatoryHtml.includes("Measured tokens saved")) {
+    throw new Error("Observatory report did not include expected sections");
   }
 
   const collisionPlanA = await request("tools/call", {
