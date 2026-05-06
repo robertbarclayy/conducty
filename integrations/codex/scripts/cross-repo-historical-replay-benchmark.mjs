@@ -4,48 +4,73 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
-const REPO = {
-  name: "react",
-  url: "https://github.com/facebook/react.git"
-};
+const DEFAULT_REPOS = [
+  { name: "react", url: "https://github.com/facebook/react.git" },
+  { name: "flutterzon_bloc", url: "https://github.com/tejasbadone/flutterzon_bloc.git" },
+  { name: "express", url: "https://github.com/expressjs/express.git" },
+  { name: "flask", url: "https://github.com/pallets/flask.git" },
+  { name: "fastapi", url: "https://github.com/fastapi/fastapi.git" },
+  { name: "chi", url: "https://github.com/go-chi/chi.git" },
+  { name: "redux", url: "https://github.com/reduxjs/redux.git" },
+  { name: "preact", url: "https://github.com/preactjs/preact.git" },
+  { name: "rustlings", url: "https://github.com/rust-lang/rustlings.git" }
+];
 
 const TEXT_EXTENSIONS = new Set([
-  ".cjs", ".cfg", ".css", ".flow", ".graphql", ".html", ".js", ".json",
-  ".jsx", ".md", ".mjs", ".sh", ".ts", ".tsx", ".txt", ".yml", ".yaml"
+  ".cjs", ".cfg", ".css", ".dart", ".flow", ".go", ".gradle", ".graphql",
+  ".html", ".ini", ".java", ".js", ".json", ".jsx", ".kt", ".md", ".mdx",
+  ".mjs", ".py", ".rs", ".rst", ".scss", ".sh", ".svelte", ".swift",
+  ".toml", ".ts", ".tsx", ".txt", ".vue", ".xml", ".yaml", ".yml"
 ]);
 
-const CODE_EXTENSIONS = new Set([".cjs", ".js", ".jsx", ".mjs", ".ts", ".tsx"]);
+const CODE_EXTENSIONS = new Set([
+  ".cjs", ".dart", ".go", ".java", ".js", ".jsx", ".kt", ".mjs", ".py",
+  ".rs", ".svelte", ".swift", ".ts", ".tsx", ".vue"
+]);
 
 const EXCLUDED_SEGMENTS = new Set([
-  ".git", ".github", ".next", ".yarn", "build", "coverage", "dist",
-  "node_modules", "tmp"
+  ".dart_tool", ".git", ".gradle", ".mypy_cache", ".next", ".nuxt",
+  ".pytest_cache", ".ruff_cache", ".svelte-kit", ".tox", ".venv", ".yarn",
+  "__pycache__", "build", "coverage", "dist", "env", "node_modules", "Pods",
+  "target", "tmp", "vendor", "venv"
 ]);
 
 const EXCLUDED_BASENAMES = new Set([
-  "package-lock.json", "pnpm-lock.yaml", "yarn.lock"
+  "Cargo.lock", "package-lock.json", "pnpm-lock.yaml", "poetry.lock", "yarn.lock"
 ]);
 
 const ROOT_SUPPORT_FILES = [
   "README.md",
+  "CLAUDE.md",
   "package.json",
-  "babel.config-react-compiler.js",
-  "jest.config.js",
-  "scripts/jest/config.base.js",
-  "scripts/jest/config.source.js"
+  "pyproject.toml",
+  "Cargo.toml",
+  "go.mod",
+  "pubspec.yaml",
+  "tsconfig.json",
+  "vite.config.ts",
+  "requirements.txt",
+  "setup.cfg",
+  "setup.py"
 ];
 
 const LOCAL_SUPPORT_FILENAMES = [
   "package.json",
+  "pyproject.toml",
+  "Cargo.toml",
+  "go.mod",
+  "pubspec.yaml",
   "tsconfig.json",
   "jest.config.js",
-  "rollup.config.js"
+  "rollup.config.js",
+  "vite.config.ts"
 ];
 
 const MAX_FILE_BYTES = 768 * 1024;
-const CLONE_DEPTH = 220;
+const CLONE_DEPTH = 260;
 const CLONE_ATTEMPTS = 3;
-const COMMITS_TO_REPLAY = 12;
-const MAX_COMMITS_TO_SEARCH = 180;
+const COMMITS_PER_REPO = 2;
+const MAX_COMMITS_TO_SEARCH = 160;
 const MIN_CHANGED_FILES = 2;
 const MAX_CHANGED_FILES = 24;
 const WORKFLOW_PHASES = 4;
@@ -56,16 +81,14 @@ const CONDUCTY_WORKFLOW_OVERHEAD_TOKENS = 3200;
 function main() {
   const options = parseArgs(process.argv.slice(2));
   const tempRoot = options.keep
-    ? path.resolve(options.workdir || "conducty-react-replay-work")
-    : fs.mkdtempSync(path.join(os.tmpdir(), "conducty-react-replay-"));
+    ? path.resolve(options.workdir || "conducty-cross-repo-replay-work")
+    : fs.mkdtempSync(path.join(os.tmpdir(), "conducty-cross-repo-replay-"));
   fs.mkdirSync(tempRoot, { recursive: true });
 
   try {
-    const repoDir = path.join(tempRoot, REPO.name);
-    cloneRepo(repoDir, tempRoot);
-    const selected = selectCommits(repoDir, options.commits);
-    const rows = selected.map((commit, index) => measureReplay(repoDir, commit, path.join(tempRoot, `replay-${index + 1}`)));
-    const report = renderReport(rows);
+    const repoResults = DEFAULT_REPOS.map((repo) => measureRepo(repo, tempRoot, options.commitsPerRepo));
+    const rows = repoResults.flatMap((result) => result.rows);
+    const report = renderReport(repoResults, rows);
     if (options.output) {
       const outputPath = path.resolve(options.output);
       fs.mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -82,21 +105,23 @@ function parseArgs(args) {
     keep: false,
     output: "",
     workdir: "",
-    commits: COMMITS_TO_REPLAY
+    commitsPerRepo: COMMITS_PER_REPO
   };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--keep") options.keep = true;
     else if (arg === "--output") options.output = requireValue(args, ++index, "--output");
     else if (arg === "--workdir") options.workdir = requireValue(args, ++index, "--workdir");
-    else if (arg === "--commits") options.commits = normalizePositiveInteger(requireValue(args, ++index, "--commits"), COMMITS_TO_REPLAY);
-    else if (arg === "--help") {
+    else if (arg === "--commits-per-repo") {
+      options.commitsPerRepo = normalizePositiveInteger(requireValue(args, ++index, "--commits-per-repo"), COMMITS_PER_REPO);
+    } else if (arg === "--help") {
       console.log([
-        "Usage: node scripts/react-historical-replay-benchmark.mjs [--output <file>] [--commits <n>] [--keep] [--workdir <dir>]",
+        "Usage: node scripts/cross-repo-historical-replay-benchmark.mjs [--output <file>] [--commits-per-repo <n>] [--keep] [--workdir <dir>]",
         "",
-        "Clones facebook/react without checkout, selects recent focused commits, creates",
-        "parent-state focused workspaces, applies the historical patch, and verifies",
-        "the replayed focused files exactly match the target commit."
+        "Clones a fixed set of public repositories without checkout, selects focused",
+        "recent non-merge commits, creates parent-state focused workspaces, applies",
+        "the real historical patches, and verifies replayed files exactly match the",
+        "target commits."
       ].join("\n"));
       process.exit(0);
     } else {
@@ -117,7 +142,40 @@ function normalizePositiveInteger(value, fallback) {
   return Math.floor(number);
 }
 
-function cloneRepo(repoDir, tempRoot) {
+function measureRepo(repo, tempRoot, commitsPerRepo) {
+  const repoDir = path.join(tempRoot, repo.name);
+  cloneRepo(repo, repoDir, tempRoot);
+
+  const candidates = candidateCommits(repo, repoDir);
+  const rows = [];
+  const skipped = [];
+
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index];
+    const replayDir = path.join(tempRoot, `${repo.name}-replay-${index + 1}`);
+    try {
+      rows.push(measureReplay(repo, repoDir, candidate, replayDir));
+    } catch (error) {
+      skipped.push({
+        commit: candidate.commit,
+        reason: firstLine(error instanceof Error ? error.message : String(error))
+      });
+    }
+    if (rows.length >= commitsPerRepo) break;
+  }
+
+  if (rows.length < commitsPerRepo) {
+    const reasons = skipped
+      .slice(0, 8)
+      .map((skip) => `${skip.commit.slice(0, 12)}: ${skip.reason}`)
+      .join("\n");
+    throw new Error(`${repo.name}: expected ${commitsPerRepo} replayable commits, got ${rows.length}.${reasons ? `\n${reasons}` : ""}`);
+  }
+
+  return { repo, rows, skipped };
+}
+
+function cloneRepo(repo, repoDir, tempRoot) {
   let lastError;
   for (let attempt = 1; attempt <= CLONE_ATTEMPTS; attempt += 1) {
     fs.rmSync(repoDir, { recursive: true, force: true });
@@ -129,7 +187,7 @@ function cloneRepo(repoDir, tempRoot) {
       "--depth",
       String(CLONE_DEPTH),
       "--no-tags",
-      REPO.url,
+      repo.url,
       repoDir
     ], {
       cwd: tempRoot,
@@ -139,29 +197,34 @@ function cloneRepo(repoDir, tempRoot) {
     });
     if (result.status === 0) return;
     lastError = [
-      `git clone ${REPO.url} failed on attempt ${attempt}/${CLONE_ATTEMPTS}`,
+      `git clone ${repo.url} failed on attempt ${attempt}/${CLONE_ATTEMPTS}`,
       result.stdout.trim(),
       result.stderr.trim()
     ].filter(Boolean).join("\n");
     if (attempt < CLONE_ATTEMPTS) sleepMs(1000 * attempt);
   }
-  throw new Error(lastError || `git clone ${REPO.url} failed`);
+  throw new Error(lastError || `git clone ${repo.url} failed`);
 }
 
-function selectCommits(repoDir, limit) {
+function candidateCommits(repo, repoDir) {
   const log = run("git", [
     "log",
     "--no-merges",
     `--max-count=${MAX_COMMITS_TO_SEARCH}`,
     "--format=%H%x09%s"
   ], repoDir).stdout.trim();
-  if (!log) throw new Error("No commits found in facebook/react.");
+  if (!log) throw new Error(`${repo.name}: no commits found.`);
 
-  const selected = [];
+  const candidates = [];
   for (const line of log.split(/\r?\n/)) {
     const [commit, ...subjectParts] = line.split("\t");
     const subject = subjectParts.join("\t");
-    const parent = run("git", ["rev-parse", `${commit}^`], repoDir).stdout.trim();
+    let parent;
+    try {
+      parent = run("git", ["rev-parse", `${commit}^`], repoDir).stdout.trim();
+    } catch {
+      continue;
+    }
     const changedFiles = changedFilesForCommit(repoDir, commit);
     const codeFileCount = changedFiles.filter((file) => CODE_EXTENSIONS.has(path.extname(file).toLowerCase())).length;
     if (
@@ -170,20 +233,37 @@ function selectCommits(repoDir, limit) {
       codeFileCount > 0 &&
       changedFiles.every((file) => file.length < 210)
     ) {
-      selected.push({ commit, parent, subject, changedFiles });
+      candidates.push({ commit, parent, subject, changedFiles });
     }
-    if (selected.length >= limit) break;
   }
 
-  if (selected.length < limit) {
-    throw new Error(`Expected ${limit} replayable focused commits, found ${selected.length}.`);
-  }
-  return selected;
+  if (!candidates.length) throw new Error(`${repo.name}: no focused candidate commits found.`);
+  return candidates;
 }
 
-function measureReplay(repoDir, selected, replayDir) {
+function changedFilesForCommit(repoDir, commit) {
+  const output = run("git", [
+    "show",
+    "--format=",
+    "--name-only",
+    "--diff-filter=ACM",
+    commit
+  ], repoDir).stdout;
+  return output
+    .split(/\r?\n/)
+    .map((file) => file.trim())
+    .filter(Boolean)
+    .filter(isReadableRelativePath)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function measureReplay(repo, repoDir, selected, replayDir) {
   const parentEntries = readCommitEntries(repoDir, selected.parent);
   const targetEntries = readCommitEntries(repoDir, selected.commit);
+  for (const file of selected.changedFiles) {
+    if (!targetEntries.has(file)) throw new Error(`${selected.commit}: target text entry missing for ${file}`);
+  }
+
   const focusedPaths = focusedContextPaths(parentEntries, targetEntries, selected.changedFiles);
   const baseline = measureEntryTokens(parentEntries);
   const focused = measureEntryTokens(focusedPaths.map((file) => parentEntries.get(file) || targetEntries.get(file)).filter(Boolean));
@@ -193,7 +273,6 @@ function measureReplay(repoDir, selected, replayDir) {
   const replay = replayPatch(selected, parentEntries, targetEntries, replayDir, patch);
 
   const contextSavedTokens = baseline.tokens - focused.tokens;
-  const contextSavedPercent = percent(contextSavedTokens, baseline.tokens);
   const naiveWorkflowTokens = (baseline.tokens * WORKFLOW_PHASES) + (BASELINE_PHASE_PROMPT_TOKENS * WORKFLOW_PHASES);
   const initialWorkflowTokens = baseline.tokens + (focused.tokens * 3) + diff.tokens + INITIAL_WORKFLOW_OVERHEAD_TOKENS;
   const currentWorkflowTokens = (focused.tokens * 3) + diff.tokens + CONDUCTY_WORKFLOW_OVERHEAD_TOKENS;
@@ -208,6 +287,7 @@ function measureReplay(repoDir, selected, replayDir) {
   if (currentVsInitialSavedTokens <= 0) throw new Error(`${selected.commit}: current replay did not improve over initial proxy`);
 
   return {
+    repo,
     ...selected,
     baseline,
     focused,
@@ -222,7 +302,7 @@ function measureReplay(repoDir, selected, replayDir) {
       verifiedFiles: selected.changedFiles.length
     },
     contextSavedTokens,
-    contextSavedPercent,
+    contextSavedPercent: percent(contextSavedTokens, baseline.tokens),
     workflow: {
       naiveTokens: naiveWorkflowTokens,
       initialTokens: initialWorkflowTokens,
@@ -283,34 +363,16 @@ function writeParentState(selected, parentEntries, replayDir) {
 function verifyReplay(selected, targetEntries, replayDir) {
   for (const file of selected.changedFiles) {
     const targetEntry = targetEntries.get(file);
-    if (!targetEntry) {
-      throw new Error(`${selected.commit}: target entry missing for ${file}`);
-    }
+    if (!targetEntry) throw new Error(`${selected.commit}: target entry missing for ${file}`);
+
     const replayedPath = path.join(replayDir, file);
-    if (!fs.existsSync(replayedPath)) {
-      throw new Error(`${selected.commit}: replayed file missing ${file}`);
-    }
+    if (!fs.existsSync(replayedPath)) throw new Error(`${selected.commit}: replayed file missing ${file}`);
+
     const replayed = fs.readFileSync(replayedPath);
     if (!replayed.equals(targetEntry.content)) {
       throw new Error(`${selected.commit}: replayed file did not match target commit for ${file}`);
     }
   }
-}
-
-function changedFilesForCommit(repoDir, commit) {
-  const output = run("git", [
-    "show",
-    "--format=",
-    "--name-only",
-    "--diff-filter=ACM",
-    commit
-  ], repoDir).stdout;
-  return output
-    .split(/\r?\n/)
-    .map((file) => file.trim())
-    .filter(Boolean)
-    .filter(isReadableRelativePath)
-    .sort((a, b) => a.localeCompare(b));
 }
 
 function focusedContextPaths(parentEntries, targetEntries, changedFiles) {
@@ -463,7 +525,7 @@ function run(command, args, cwd) {
     cwd,
     encoding: "utf8",
     shell: false,
-    maxBuffer: 96 * 1024 * 1024
+    maxBuffer: 128 * 1024 * 1024
   });
   if (result.status !== 0) {
     throw new Error([
@@ -498,7 +560,7 @@ function runWithInput(command, args, cwd, input) {
     input,
     encoding: null,
     shell: false,
-    maxBuffer: 96 * 1024 * 1024
+    maxBuffer: 128 * 1024 * 1024
   });
   if (result.status !== 0) {
     throw new Error([
@@ -510,7 +572,7 @@ function runWithInput(command, args, cwd, input) {
   return result;
 }
 
-function renderReport(rows) {
+function renderReport(repoResults, rows) {
   const totals = rows.reduce((acc, row) => {
     acc.baselineFiles += row.baseline.files;
     acc.focusedFiles += row.focused.files;
@@ -544,32 +606,35 @@ function renderReport(rows) {
     currentVsInitialSavedTokens: 0
   });
 
+  const repoRows = repoResults.map((result) => summarizeRepo(result.repo, result.rows, result.skipped.length));
+  const skippedCandidates = repoResults.reduce((total, result) => total + result.skipped.length, 0);
   const contextSavings = percent(totals.contextSavedTokens, totals.baselineTokens);
   const initialSavings = percent(totals.initialSavedTokens, totals.naiveWorkflowTokens);
   const currentSavings = percent(totals.currentSavedTokens, totals.naiveWorkflowTokens);
   const currentVsInitialSavings = percent(totals.currentVsInitialSavedTokens, totals.initialWorkflowTokens);
 
   return [
-    "# Meta React Historical Replay Benchmark",
+    "# Final Cross-Repo Historical Replay Benchmark",
     "",
     `Generated: ${new Date().toISOString()}`,
     "",
-    "This benchmark is stricter than a context-size estimate. It selects recent focused non-merge commits from Meta's public `facebook/react` repository, creates a parent-state focused workspace for each commit, applies the real historical patch, and verifies every replayed focused file exactly matches the target commit.",
+    "This benchmark is the strictest checked-in evidence snapshot for the Conducty Codex integration. It samples recent focused non-merge commits across public repositories and languages, creates parent-state focused workspaces, applies the real historical patches, and verifies every replayed file exactly matches the target commit.",
     "",
-    "- **Replay gate:** the historical patch must apply to parent-state files and reproduce target-state files exactly.",
+    "- **Replay gate:** a row counts only if the historical patch applies to parent-state files and reproduces target-state files byte-for-byte.",
     "- **Host checkout guard:** replay tries the default Git apply behavior first, then an LF-pinned mode, and still accepts only byte-exact target archive matches.",
+    "- **Cross-repo gate:** the default run covers React, Flutter, Node, Python, Go, TypeScript, Preact, and Rust training repos.",
     "- **Naive baseline:** reload whole-repo readable context for plan, execute, verify, and review.",
     "- **Initial Conducty proxy:** one broad `conducty-context` pass over readable repo context, then focused plan/execute/verify work and diff review. This proxy is generous because it charges zero extra overhead.",
     `- **Current PR architecture:** focused plan/execute/verify context plus diff evidence and ${CONDUCTY_WORKFLOW_OVERHEAD_TOKENS} fixed tokens for plan/checkpoint/verification overhead.`,
     "- **Token estimate:** `ceil(total UTF-8 characters / 4)`, deterministic and offline.",
     "",
-    "This is still not an autonomous-agent success benchmark or exact provider-billing trace. It is an end-to-end historical patch replay benchmark with exact target-file verification.",
+    "This is still not an autonomous-agent success benchmark, product-wide guarantee, or exact provider-billing trace. It is a deterministic cross-repo historical patch replay benchmark with exact target-file verification.",
     "",
     "## Summary",
     "",
-    `- Repository: ${REPO.url}`,
-    `- Commits replayed: ${rows.length}`,
+    `- Repositories measured: ${repoResults.length}`,
     `- Replayed commits passed: ${rows.filter((row) => row.replay.applied).length}/${rows.length}`,
+    `- Candidate commits skipped before replay success: ${skippedCandidates}`,
     `- Target files verified exactly: ${formatInteger(totals.verifiedFiles)}`,
     `- Patch bytes applied: ${formatInteger(totals.patchBytes)}`,
     `- Baseline readable files counted across parent checkouts: ${formatInteger(totals.baselineFiles)}`,
@@ -585,11 +650,29 @@ function renderReport(rows) {
     `- Current PR saved vs initial: ${formatInteger(totals.currentVsInitialSavedTokens)} tokens (${currentVsInitialSavings.toFixed(1)}%)`,
     `- Median current-vs-initial per-replay savings: ${median(rows.map((row) => row.workflow.currentVsInitialSavedPercent)).toFixed(1)}%`,
     "",
+    "## Repository Results",
+    "",
+    "| Repository | Replays | Skipped candidates | Verified files | Baseline tokens | Focused tokens | Initial architecture | Current PR | Current saved vs initial | Current saved vs initial % |",
+    "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ...repoRows.map((row) => [
+      row.name,
+      row.replays,
+      row.skipped,
+      row.verifiedFiles,
+      row.baselineTokens,
+      row.focusedTokens,
+      row.initialTokens,
+      row.currentTokens,
+      row.currentVsInitialSavedTokens,
+      `${row.currentVsInitialSavedPercent.toFixed(1)}%`
+    ]).map((cells) => `| ${cells.join(" | ")} |`),
+    "",
     "## Replay Results",
     "",
-    "| Commit | Focused change | Apply mode | Changed files | Verified files | Baseline tokens | Focused tokens | Initial architecture | Current PR | Current saved vs initial | Current saved vs initial % |",
-    "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+    "| Repository | Commit | Focused change | Apply mode | Changed files | Verified files | Baseline tokens | Focused tokens | Initial architecture | Current PR | Current saved vs initial % |",
+    "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ...rows.map((row) => [
+      row.repo.name,
       row.commit.slice(0, 12),
       markdownCell(row.subject),
       row.replay.mode,
@@ -599,15 +682,15 @@ function renderReport(rows) {
       row.focused.tokens,
       row.workflow.initialTokens,
       row.workflow.currentTokens,
-      row.workflow.currentVsInitialSavedTokens,
       `${row.workflow.currentVsInitialSavedPercent.toFixed(1)}%`
     ]).map((cells) => `| ${cells.join(" | ")} |`),
     "",
     "## Replayed Files",
     "",
     ...rows.flatMap((row, index) => [
-      `### ${index + 1}. ${row.commit.slice(0, 12)} - ${asciiText(row.subject)}`,
+      `### ${index + 1}. ${row.repo.name} ${row.commit.slice(0, 12)} - ${asciiText(row.subject)}`,
       "",
+      `- Repository: ${row.repo.url}`,
       `- Parent: \`${row.parent}\``,
       `- Commit: \`${row.commit}\``,
       `- Replay: patch applied with \`${row.replay.mode}\` mode and ${row.replay.verifiedFiles} files matched target commit exactly`,
@@ -616,6 +699,32 @@ function renderReport(rows) {
       ""
     ])
   ].join("\n");
+}
+
+function summarizeRepo(repo, rows, skipped) {
+  const totals = rows.reduce((acc, row) => {
+    acc.verifiedFiles += row.replay.verifiedFiles;
+    acc.baselineTokens += row.baseline.tokens;
+    acc.focusedTokens += row.focused.tokens;
+    acc.initialTokens += row.workflow.initialTokens;
+    acc.currentTokens += row.workflow.currentTokens;
+    acc.currentVsInitialSavedTokens += row.workflow.currentVsInitialSavedTokens;
+    return acc;
+  }, {
+    verifiedFiles: 0,
+    baselineTokens: 0,
+    focusedTokens: 0,
+    initialTokens: 0,
+    currentTokens: 0,
+    currentVsInitialSavedTokens: 0
+  });
+  return {
+    name: repo.name,
+    replays: rows.length,
+    skipped,
+    ...totals,
+    currentVsInitialSavedPercent: percent(totals.currentVsInitialSavedTokens, totals.initialTokens)
+  };
 }
 
 function markdownCell(value) {
@@ -631,6 +740,10 @@ function asciiText(value) {
     .replace(/[^\x09\x0a\x0d\x20-\x7e]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function firstLine(value) {
+  return asciiText(value).split(/\r?\n/)[0] || "unknown error";
 }
 
 function percent(numerator, denominator) {
