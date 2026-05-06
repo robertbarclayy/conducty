@@ -40,6 +40,10 @@ const DEFAULT_BENCHMARKS = [
     file: path.join(INTEGRATION_DIR, "openclaw-historical-replay-benchmark.md")
   },
   {
+    name: "Unseen repos historical replay",
+    file: path.join(INTEGRATION_DIR, "unseen-repos-historical-replay-benchmark.md")
+  },
+  {
     name: "Final cross-repo historical replay",
     file: path.join(INTEGRATION_DIR, "cross-repo-historical-replay-benchmark.md")
   },
