@@ -31,14 +31,15 @@ This skill runs a structured audit and produces a vault-health report.
 
 ### Audit 1: Orphan Notes
 
-Notes nothing links to. For each per-instance note (`Plan`, `Design`, `Improvement`, `Code Review`, `Ship Report`, `Context Refresh`, module deep notes), check that at least one other note wikilinks it.
+Notes nothing links to. For each per-instance note (`Plan`, `Design`, `Improvement`, `Code Review`, `Ship Report`, `Kernel Contract`, `Context Refresh`, module deep notes), check that at least one other note wikilinks it.
 
 ```bash
 VAULT="${CONDUCTY_VAULT:-$HOME/Obsidian/Conducty}"
 for f in "$VAULT"/Plans/Plan*.md "$VAULT"/Designs/Design*.md \
          "$VAULT"/Improvements/Improvement*.md \
          "$VAULT"/"Code Reviews"/"Code Review"*.md \
-         "$VAULT"/"Ship Reports"/"Ship Report"*.md; do
+         "$VAULT"/"Ship Reports"/"Ship Report"*.md \
+         "$VAULT"/"Kernel Contracts"/"Kernel Contract"*.md; do
     [ -f "$f" ] || continue
     base="$(basename "$f" .md)"
     if ! grep -rl --exclude="$base.md" "\\[\\[$base\\]\\]" "$VAULT" > /dev/null; then
@@ -106,6 +107,8 @@ Every per-instance note should appear in its corresponding index. Check:
 - `Plans Index` lists every `Plans/Plan *.md`
 - `Designs Index` lists every `Designs/Design *.md`
 - `Improvements Index` lists every `Improvements/Improvement *.md`
+- `Ship Reports Index` lists every `Ship Reports/Ship Report *.md`
+- `Kernel Contracts Index` lists every `Kernel Contracts/Kernel Contract *.md`
 - `Context Index` lists every `Context/*/Context *.md` hub (not slices)
 
 Note appearing in vault but not in index → index drift. Add the wikilink.

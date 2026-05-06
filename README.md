@@ -12,9 +12,11 @@ Plan once. Run in parallel. Review and ship. Then read your own past back into t
 
 Most AI coding sessions look like this: prompt, wait, get distracted, review, fix, repeat. In that loop, the limiting factor is not model capability — it is human sequencing overhead, and the fact that lessons from prior sessions evaporate.
 
-Conducty turns that loop into a structured per-plan cycle: batch-plan, run prompts in parallel via Claude Code subagents, review and ship with evidence — and write everything (plans, designs, context, improvements, failure patterns, metrics) into an Obsidian vault as a wikilinked knowledge graph. The next plan reads that graph and gets sharper.
+Conducty turns that loop into a structured per-plan cycle: batch-plan, run prompts in parallel via Claude Code subagents, review and ship with evidence — and write everything (plans, designs, context, kernel contracts, improvements, failure patterns, metrics) into an Obsidian vault as a wikilinked knowledge graph. The next plan reads that graph and gets sharper.
 
 Under the hood, it is grounded in proven engineering thinking: Shape Up's appetite-driven planning, Toyota Kata's improvement loops, tracer bullets from The Pragmatic Programmer, and calibrated rigor from Release It!. The result is a learning system that compounds.
+
+The newest layer is the Conducty kernel: a state machine, skill router, contract checker, risk model, invariant gate, evidence model, and policy-update loop. The cycle names the work; the kernel decides whether the system has enough context, proof, and risk handling to advance.
 
 ## The Conducty Cycle
 
@@ -26,12 +28,66 @@ Shape → Plan → Trace → Execute → Verify → Improve   →   Code Review 
 
 1. **Shape** — set the appetite, define boundaries and no-go zones, produce a design note
 2. **Plan** — decompose designs into time-budgeted prompts with tracer markers and calibrated review levels
-3. **Trace** — run one prompt per group as a tracer bullet to validate plan assumptions
-4. **Execute** — dispatch remaining prompts via Claude Code's Task tool with review rigor scaled to risk
-5. **Verify** — checkpoint between groups with health metrics and hill chart tracking
-6. **Improve** — extract failure patterns, run the improvement kata, shape the next plan
-7. **Code Review** *(post-cycle)* — whole-branch holistic review of the plan's cumulative diff
-8. **Ship** *(post-cycle)* — pre-merge gate: lint, typecheck, tests, secrets, vuln check, code-review verdict
+3. **Plan Gate** — audit plan readiness before spending agent execution slots
+4. **Trace** — run one prompt per group as a tracer bullet to validate plan assumptions
+5. **Execute** — dispatch remaining prompts via Claude Code's Task tool with review rigor scaled to risk
+6. **Verify** — checkpoint between groups with health metrics and hill chart tracking
+7. **Improve** — extract failure patterns, run the improvement kata, shape the next plan
+8. **Code Review** *(post-cycle)* — whole-branch holistic review of the plan's cumulative diff
+9. **Ship** *(post-cycle)* — pre-merge gate: lint, typecheck, tests, secrets, vuln check, code-review verdict
+
+## Kernel Architecture
+
+Conducty can now be understood as a closed-loop orchestration kernel:
+
+```
+Observe -> Shape Hypothesis -> Plan Experiment -> Execute Safely
+   -> Verify Evidence -> Diagnose Failure -> Learn -> Update Policy
+   -> Next Better Plan
+```
+
+| Layer | Responsibility |
+|-------|----------------|
+| `conducty-kernel` | State machine, skill router, contracts, risk model, invariants, evidence objects, policy updates |
+| `conducty-context` | Fresh project/vault context and context confidence |
+| `conducty-shape` | Appetite, scope, no-go zones, acceptance criteria, decision points |
+| `conducty-plan` | Prompt graph, tracer selection, dependencies, review level, verification |
+| `conducty-execute` | Tracer-first execution, bounded implementation, prompt outcome capture |
+| `conducty-verify` | Evidence objects: command, output, changed files, verdict, residual risk |
+| `conducty-debug` | Failure classification across plan, prompt, context, code, tool, and environment |
+| `conducty-review` / `conducty-ship` | Whole-branch audit and final merge/deploy verdict |
+| `conducty-improve` | Learning deltas that update future templates, risk, routing, and context |
+
+The Codex MCP server includes operational kernel tools:
+
+- `get_kernel`: explain the kernel loop, responsibilities, and vocabulary.
+- `assess_kernel_state`: infer current state, next skill, risk score, invariant violations, and required evidence.
+- `create_kernel_contract`: write a timestamped `Kernel Contracts/` note and update `Kernel Contracts Index`.
+
+### Operating Control Surfaces
+
+This PR-level architecture gives Conducty three concrete operating surfaces:
+
+| Surface | Question it answers | Real-world failure it prevents |
+|---------|---------------------|--------------------------------|
+| Kernel contract | "Where are we, how risky is this, and what evidence blocks progress?" | executing or shipping from vague state |
+| Plan quality gate | "Is this plan ready to spend agent execution slots?" | wasting parallel runs on smelly prompts or weak tracers |
+| Observatory report | "Is the vault/plan system healthy over time?" | hidden stale context, missing closure, broken links, and repeated failures |
+
+Together they form a closed operational loop: assess state, gate the plan, execute with evidence, then inspect system health before the next plan.
+
+### Token Economics
+
+These estimates are planning guidance, not benchmarks. The gain comes from fewer failed loops and less repeated context, not magically shorter prompts.
+
+| Workflow | Upfront token cost | Retry/failure tokens | Repeated context tokens | Estimated net saving |
+|----------|--------------------|----------------------|-------------------------|----------------------|
+| Manual loop | low | very high | very high | baseline |
+| Current Conducty cycle | medium | medium | medium-low | 25-40% |
+| Conducty kernel | medium-high | low | low | 40-60% |
+| Mature optimized Conducty | medium | very low | very low | 55-70% |
+
+For a 100k-token medium-to-large task, current Conducty may finish around 60k-75k tokens; the kernel approach targets roughly 40k-60k when the task is risky enough for the contract to pay for itself.
 
 ## Installation
 
@@ -47,7 +103,7 @@ chmod +x install-claude-code.sh
 This will:
 1. Symlink all `conducty-*` skills into `~/.claude/skills/`
 2. Append the Conducty workflow and quality rules to `~/.claude/CLAUDE.md` (between marker comments so they can be cleanly removed)
-3. Create the vault at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`) and seed it with index notes (`Conducty Index`, `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`, `Ship Reports Index`) and accumulating notes (`Failure Patterns`, `Metrics`, `Prompt Log`)
+3. Create the vault at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`) and seed it with index notes (`Conducty Index`, `Plans Index`, `Designs Index`, `Context Index`, `Improvements Index`, `Ship Reports Index`, `Kernel Contracts Index`) and accumulating notes (`Failure Patterns`, `Metrics`, `Prompt Log`)
 
 Restart Claude Code afterward to pick up the new skills. Open the vault in Obsidian to navigate the graph.
 
@@ -60,6 +116,9 @@ Conducty also ships a Codex integration under [`integrations/codex`](integration
 The MCP server exposes deterministic vault tools for the parts of Conducty that should not depend on hand-edited chat state:
 
 - initialize the Obsidian vault
+- explain the Conducty kernel loop
+- infer workflow state, next skill, risk score, invariant violations, and evidence requirements
+- write kernel contract notes for serious or risky work
 - create timestamped plan notes
 - check prompt smells before execution
 - log prompt outcomes
@@ -67,6 +126,7 @@ The MCP server exposes deterministic vault tools for the parts of Conducty that 
 - write improvement kata notes
 - create pre-merge ship reports with verification evidence and residual risks
 - audit the vault graph for broken links, duplicate basenames, orphan notes, and missing closure signals
+- generate a local Observatory HTML report for plan closure, graph health, and learning velocity
 - list recent vault notes
 
 Install the local Codex plugin:
@@ -96,6 +156,13 @@ cd integrations/codex
 node scripts/smoke-test.mjs
 ```
 
+Generate a local Observatory report:
+
+```bash
+cd integrations/codex
+node scripts/observatory.mjs --vault "$CONDUCTY_VAULT"
+```
+
 ## Quickstart — Your First Plan
 
 After install, open Claude Code in any project directory and run:
@@ -123,6 +190,8 @@ You: add a date-format helper with TDD
 Claude: [runs conducty-plan with 30-min appetite, single prompt,
         verify-only, no parallelism]
         Plan note written: Plan 2026-04-27 1430 Date Helper.md
+        [runs conducty-plan-audit]
+        Plan gate: green — ready for tracer/manual execution.
         Open it in Obsidian — paste the prompt into a fresh
         Claude Code session in ~/code/my-app.
 You: [paste prompt → implementer writes test, then code → verifies]
@@ -141,7 +210,7 @@ By the end you have a working vault with seven notes per project and your first 
 > plan this work: refactor the billing module to use the new tax engine
 ```
 
-`conducty-plan` reads your prior plan, your latest improvement, your failure patterns, your context sub-graph for `my-app`, and proposes a structured plan with tracer markers and calibrated review levels. Approve, then `execute the plan`.
+`conducty-plan` reads your prior plan, your latest improvement, your failure patterns, your context sub-graph for `my-app`, and proposes a structured plan with tracer markers and calibrated review levels. `conducty-plan-audit` gates the plan before execution so weak plans are fixed before the tracer runs. Approve, gate, then `execute the plan`.
 
 **At the end of the branch (before merge):**
 
@@ -169,11 +238,12 @@ Vault is **nested by category** — per-instance notes get a dedicated directory
 | Improvement | `Improvements/Improvement YYYY-MM-DD HHmm.md` |
 | Code review | `Code Reviews/Code Review YYYY-MM-DD HHmm.md` |
 | Ship report | `Ship Reports/Ship Report YYYY-MM-DD HHmm.md` |
+| Kernel contract | `Kernel Contracts/Kernel Contract YYYY-MM-DD HHmm {Topic}.md` |
 | Context (sub-graph) | `Context/{Project}/Context {Project}.md` (hub) + `Context/{Project}/Context {Project} Architecture/Conventions/Invariants/Hotspots/Tests/Glossary.md` + optional `Context/{Project}/Modules/Context {Project} {Module}.md` deep notes + `Context/{Project}/Refreshes/Context Refresh {Project} YYYY-MM-DD HHmm.md` deltas |
 | Failure Patterns | `Accumulators/Failure Patterns.md` (accumulating) |
 | Metrics | `Accumulators/Metrics.md` (accumulating) |
 | Prompt Log | `Accumulators/Prompt Log.md` (accumulating) |
-| Indexes | `Conducty Index.md` (root) + `Indexes/{Plans,Designs,Context,Improvements,Ship Reports} Index.md` |
+| Indexes | `Conducty Index.md` (root) + `Indexes/{Plans,Designs,Context,Improvements,Ship Reports,Kernel Contracts} Index.md` |
 
 See `skills/conducty-obsidian/SKILL.md` for the complete vault contract: frontmatter, link conventions, index discipline, bootstrap.
 
@@ -191,9 +261,12 @@ In any project, ask Claude Code to **start a plan**. The `conducty-plan` skill w
 - **Shape non-trivial goals**: Medium/High complexity goals go through `conducty-shape` for appetite-driven design with no-go zones and rabbit hole management
 - Generate a plan note with parallel groups, tracer markers, and calibrated review levels
 - Check every prompt for **prompt smells** before finalizing
+- Run a pre-execution **plan quality gate** with `conducty-plan-audit`
 - Assign review levels: verify-only (low risk), spec-review (medium), full-review (high)
 
 ### Execution: Trace and Execute
+
+Before execution, `conducty-plan-audit` checks appetite fit, prompt independence, tracer quality, verification, no-go zones, scoped context, review calibration, and carry-forward from recent failure patterns. Green proceeds. Yellow revises or requires explicit risk acceptance. Red stops and routes back to shaping or planning.
 
 **Automated (recommended):** Use `conducty-execute` to run prompts via Claude Code's **Task** tool. The **tracer prompt** in each group runs first — if it fails, the plan needs revision, not just a fix. Remaining prompts execute as subagents with review rigor calibrated to their complexity.
 
@@ -238,13 +311,14 @@ Ten engineering-grounded principles enforced across every session:
 
 ## Skills
 
-13 skills, organized into three tiers.
+20 skills, organized by role.
 
 ### Foundation
 
 | Skill | Role |
 |-------|------|
 | `conducty-system` | Philosophy, ten principles, ubiquitous language, "where am I?" router. |
+| `conducty-kernel` | Closed-loop control layer: state machine, skill router, contracts, risk model, invariants, evidence, and policy updates. |
 | `conducty-obsidian` | The vault contract. Layout, naming, frontmatter, link conventions, indexes. Read before any state I/O. |
 | `conducty-bootstrap` | First-run walkthrough. Confirms vault, runs first context, produces a tiny throwaway first plan. |
 
@@ -254,6 +328,7 @@ Ten engineering-grounded principles enforced across every session:
 |-------|------|
 | `conducty-shape` | Appetite-driven design. Non-trivial goals get appetite, scope, no-go zones, rabbit-hole budgets. Writes `Design YYYY-MM-DD HHmm {Topic}.md`. |
 | `conducty-plan` | Per-plan batch planning. Decomposes goals into time-budgeted prompts with tracer markers. Writes `Plan YYYY-MM-DD HHmm [Topic].md`. |
+| `conducty-plan-audit` | Pre-execution quality gate. Audits appetite fit, acceptance clarity, prompt independence, tracer strategy, verification, no-go zones, risk calibration, and learning carry-forward before execution. |
 | `conducty-execute` | Tracer-first subagent execution via the Task tool. |
 | `conducty-checkpoint` | Health-aware group gate. Pass rate, hill charts, systemic-failure detection. |
 | `conducty-review` | End-of-plan audit. Evidence-based verdicts; appends to `Failure Patterns`, `Metrics`, `Prompt Log`. |
@@ -264,6 +339,7 @@ Ten engineering-grounded principles enforced across every session:
 | Skill | Role |
 |-------|------|
 | `conducty-tdd` | Two-level TDD: orchestrator (verification-first) and implementer (red-green-refactor). Prompt smell catalog. |
+| `conducty-terse` | Compression discipline for tight prompts and low-token state handoff. |
 | `conducty-verify` | Evidence gate. IDENTIFY → RUN → READ → JUDGE → RECORD. |
 | `conducty-debug` | Leverage point analysis. Plan vs. prompt vs. code. 3-retry circuit breaker. |
 
@@ -289,12 +365,13 @@ Each skill lives in `skills/<skill-name>/SKILL.md`. Claude Code loads them on de
 
 ### First Plan: Get Oriented
 
-1. Read `conducty-system` and `conducty-obsidian` — understand the philosophy, the cycle, the ubiquitous language, and the vault contract
+1. Read `conducty-system`, `conducty-kernel`, and `conducty-obsidian` — understand the philosophy, the cycle, the state/risk contract, and the vault contract
 2. Run `conducty-context` on your main project — "Load context from /path/to/my/project". A `Context {Project}.md` note appears in the vault.
 3. Run `conducty-plan` with 2-3 small goals — "Plan this work". Start with Low complexity goals to see the cycle without the full ceremony. A `Plan YYYY-MM-DD HHmm.md` note appears in the vault.
-4. Execute manually — copy prompts from the plan into a fresh Claude Code session. Get a feel for the prompt structure, no-go zones, and verification steps.
-5. Run `conducty-checkpoint` on the group
-6. Run `conducty-review` and `conducty-improve`. Inspect the new entries in `Metrics`, `Failure Patterns`, `Prompt Log`, and the new `Improvement YYYY-MM-DD HHmm.md` note.
+4. Run `conducty-plan-audit` and fix anything yellow/red before execution
+5. Execute manually — copy prompts from the plan into a fresh Claude Code session. Get a feel for the prompt structure, no-go zones, and verification steps.
+6. Run `conducty-checkpoint` on the group
+7. Run `conducty-review` and `conducty-improve`. Inspect the new entries in `Metrics`, `Failure Patterns`, `Prompt Log`, and the new `Improvement YYYY-MM-DD HHmm.md` note.
 
 This gives you one full trip through the cycle. Don't use `conducty-execute` (automated subagents) on the first plan — do it manually so you understand what's happening.
 
@@ -308,7 +385,7 @@ This gives you one full trip through the cycle. Don't use `conducty-execute` (au
 
 By now `Accumulators/Metrics.md` has a healthy run of rows. Look at:
 
-- **First-attempt pass rate** — if it's below 70%, your prompts have smells. Focus on the quality gate in `conducty-plan` Step 5e.
+- **First-attempt pass rate** — if it's below 70%, your prompts or plan have smells. Focus on `conducty-plan` Step 5e and the `conducty-plan-audit` gate.
 - **Most common failure pattern** — open `Accumulators/Failure Patterns.md`. Whatever appears most is your highest-leverage improvement.
 - **Appetite accuracy** — are you consistently over or under budget? Adjust your estimation.
 - **Review level calibration** — are verify-only prompts passing reliably? Are full-review prompts catching real issues? If not, adjust the thresholds.
@@ -333,6 +410,9 @@ conducty-system (philosophy, language)
        │                                    └────►────┘
        │                                         │
        │                                         ▼
+       │                                conducty-plan-audit
+       │                                         │
+       │                                         ▼
        │                                   conducty-execute
        │                                         │
        │                          ┌──────────────┼──────────────┐
@@ -352,6 +432,49 @@ conducty-system (philosophy, language)
        └── conducty-review ──► conducty-improve ──► conducty-plan (next plan)
 ```
 
+### Kernel Dependency View
+
+```
+conducty-system
+      |
+      v
+conducty-kernel
+      |
+      +--> conducty-context --------+
+      +--> conducty-shape ----------+--> conducty-plan
+      +--> kernel risk + contracts -+        |
+                                            v
+                                      conducty-execute
+                                            |
+                       +--------------------+--------------------+
+                       v                    v                    v
+                conducty-verify     conducty-worktrees   conducty-debug
+                       |                    |                    |
+                       +-----------> reconciliation <------------+
+                                            |
+                                            v
+                                  conducty-review
+                                            |
+                                            v
+                                   conducty-ship
+                                            |
+                                            v
+                                  conducty-improve
+                                            |
+                                            v
+                                 next conducty-plan
+```
+
+| Dimension | Current cycle | Kernel architecture |
+|-----------|---------------|---------------------|
+| Core identity | Per-plan AI agent orchestration | Closed-loop orchestration kernel |
+| System role | Philosophy, principles, language, cycle routing | State machine, contracts, router, risk model, invariants |
+| Planning | Prompt groups, tracers, review levels | Typed contracts, plan hypothesis, dependency graph, required evidence |
+| Risk | Low/medium/high review calibration | Numeric risk score with blast radius, stale context, parallelism, failure history, and test weakness |
+| Verification | Evidence gate and checkpoints | Evidence objects with command, output, diff surface, verdict, residual risk |
+| Debugging | Plan/prompt/code failure | Plan, prompt, context, code, tool, and environment failure |
+| Learning | Improvement notes | Policy, template, risk, routing, and context updates |
+
 ## Project Structure
 
 ```
@@ -369,6 +492,7 @@ conducty/
 │       ├── mcp/
 │       │   └── server.mjs
 │       ├── scripts/
+│       │   ├── observatory.mjs
 │       │   └── smoke-test.mjs
 │       └── skills/
 │           └── conducty-codex/
@@ -376,6 +500,7 @@ conducty/
 │   └── INSTALL.md               # Detailed install / uninstall guide
 ├── skills/
 │   ├── conducty-system/             # Entry point and philosophy
+│   ├── conducty-kernel/             # State machine, contracts, risk, invariants
 │   ├── conducty-obsidian/           # Vault contract — context engine
 │   ├── conducty-bootstrap/          # First-run walkthrough
 │   ├── conducty-shape/              # Appetite-driven design
@@ -390,7 +515,9 @@ conducty/
 │   │       ├── security.md
 │   │       ├── migration.md
 │   │       └── performance.md
+│   ├── conducty-plan-audit/         # Pre-execution plan quality gate
 │   ├── conducty-tdd/                # Test-driven development
+│   ├── conducty-terse/              # Prompt/state compression
 │   ├── conducty-execute/            # Tracer-first execution
 │   │   ├── implementer-prompt.md
 │   │   ├── spec-reviewer-prompt.md
@@ -425,7 +552,8 @@ Created by `install-claude-code.sh` at `$CONDUCTY_VAULT` (default `~/Obsidian/Co
 │   ├── Designs Index.md
 │   ├── Context Index.md
 │   ├── Improvements Index.md
-│   └── Ship Reports Index.md
+│   ├── Ship Reports Index.md
+│   └── Kernel Contracts Index.md
 │
 ├── Accumulators/
 │   ├── Failure Patterns.md
@@ -437,6 +565,7 @@ Created by `install-claude-code.sh` at `$CONDUCTY_VAULT` (default `~/Obsidian/Co
 ├── Improvements/                            # Improvement YYYY-MM-DD HHmm.md
 ├── Code Reviews/                            # Code Review YYYY-MM-DD HHmm.md
 ├── Ship Reports/                            # Ship Report YYYY-MM-DD HHmm.md
+├── Kernel Contracts/                        # Kernel Contract YYYY-MM-DD HHmm {Topic}.md
 │
 └── Context/
     └── {Project}/

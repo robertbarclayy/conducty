@@ -11,9 +11,11 @@ tags:
 
 AI Workflow Orchestrator for Claude Code — systems-level orchestration of agents with per-plan cycles, tracer-first execution, calibrated review, and continuous improvement. **The context engine is an Obsidian vault.**
 
+Conducty also has a kernel layer: a state machine, skill router, contract checker, risk model, invariant gate, evidence model, and policy-update loop. Use [[conducty-kernel]] when you need to know the current state, next skill, risk score, contract gaps, or evidence required before advancing.
+
 ## The Context Engine
 
-Conducty's plans, designs, project context, improvements, failure patterns, metrics, and prompt logs all live in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). Every note is wikilinked to its peers — designs link to the plans that consume them, plans link to the context they loaded and the improvements they're testing, failure patterns link to the prompts that surfaced them. Future plans navigate this graph rather than re-grepping a flat history.
+Conducty's plans, designs, project context, kernel contracts, improvements, failure patterns, metrics, and prompt logs all live in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). Every note is wikilinked to its peers — designs link to the plans that consume them, plans link to the context they loaded and the improvements they're testing, kernel contracts capture state/risk/evidence decisions, and failure patterns link to the prompts that surfaced them. Future plans navigate this graph rather than re-grepping a flat history.
 
 **Read [[conducty-obsidian]] before reading or writing any state.** It defines the vault location, naming, frontmatter, link conventions, and indexes.
 
@@ -27,10 +29,12 @@ Claude Code discovers Conducty skills from `~/.claude/skills/` after running `./
 | Skill | Phase | Trigger |
 |-------|-------|---------|
 | [[conducty-system]] | foundation | session start, "what is Conducty" |
+| [[conducty-kernel]] | foundation | state/risk assessment, next skill routing, contracts, invariant checks |
 | [[conducty-obsidian]] | context engine | before any state I/O — vault conventions |
 | [[conducty-bootstrap]] | onboarding | first run, "set up Conducty", empty vault |
 | [[conducty-shape]] | shape | "shape", "design", "brainstorm" |
 | [[conducty-plan]] | plan | "plan", "batch plan", "create a plan" |
+| [[conducty-plan-audit]] | plan gate | "audit this plan", "quality gate", "ready to execute" |
 | [[conducty-tdd]] | discipline | "TDD", "red-green-refactor" |
 | [[conducty-terse]] | discipline | "terse mode", "compress prompts", "tight prompts" |
 | [[conducty-execute]] | execute | "execute the plan", "run group A" |
@@ -57,6 +61,7 @@ Per-instance notes (timestamped) — directory + filename pattern:
 - `Improvements/Improvement YYYY-MM-DD HHmm.md`
 - `Code Reviews/Code Review YYYY-MM-DD HHmm.md`
 - `Ship Reports/Ship Report YYYY-MM-DD HHmm.md`
+- `Kernel Contracts/Kernel Contract YYYY-MM-DD HHmm {Topic}.md`
 
 Project context is a **sub-graph** under `Context/{Project}/` — one hub plus several slices (see [[conducty-context]]):
 
@@ -68,7 +73,7 @@ Project context is a **sub-graph** under `Context/{Project}/` — one hub plus s
 Indexes:
 
 - `Conducty Index.md` (vault root)
-- `Indexes/Plans Index.md`, `Indexes/Designs Index.md`, `Indexes/Context Index.md`, `Indexes/Improvements Index.md`
+- `Indexes/Plans Index.md`, `Indexes/Designs Index.md`, `Indexes/Context Index.md`, `Indexes/Improvements Index.md`, `Indexes/Ship Reports Index.md`, `Indexes/Kernel Contracts Index.md`
 
 Accumulating notes (singular files, prepend new entries):
 
@@ -109,6 +114,8 @@ The following rules apply to all Conducty workflows. They are appended to `~/.cl
 
 **Prompt quality is leverage.** Everything downstream compensates for bad prompts. Invest upstream: clear acceptance criteria, scoped context, concrete verification. Check for prompt smells before finalizing any plan.
 
+**Plan gate before execution.** Use [[conducty-plan-audit]] before tracer execution. A red gate stops the plan; a yellow gate gets revised or explicitly accepted; a green gate spends agent time.
+
 **Evidence before claims.** No completion claims without fresh verification output. Use [[conducty-verify]]. Rigor scales with risk: verify-only for low, spec review for medium, full two-stage for high.
 
 **Root cause before fixes.** When a prompt fails, ask WHERE the leverage point is: prompt quality, plan quality, or code quality. Fix at the highest level. Use [[conducty-debug]]. Three failures on the same prompt = circuit breaker — escalate.
@@ -128,13 +135,17 @@ The following rules apply to all Conducty workflows. They are appended to `~/.cl
 
 Conducty follows a per-plan cycle: **Shape → Plan → Trace → Execute → Verify → Improve**. Each phase has a dedicated skill. You are always somewhere in this cycle. Multiple plans per day are normal — each plan note is timestamped (`Plan YYYY-MM-DD HHmm [Topic].md`).
 
-All Conducty state — plans, designs, context, improvements, failure patterns, metrics, prompt logs — lives in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). Read [[conducty-obsidian]] before any state I/O.
+Use [[conducty-kernel]] when state, risk, next-skill routing, contract gaps, invariant violations, or required evidence are unclear. The kernel owns the state machine, skill router, contracts, risk score, invariant gate, evidence object, and policy-update loop.
+
+All Conducty state — plans, designs, context, kernel contracts, improvements, failure patterns, metrics, prompt logs — lives in an **Obsidian vault** at `$CONDUCTY_VAULT` (default `~/Obsidian/Conducty/`). Read [[conducty-obsidian]] before any state I/O.
 
 Before starting work, list the vault for the latest `Plans/Plan *.md` note (sort by `date` then `time` frontmatter). If one is active, reference it to understand the current prompt, its scoped context, time budget, and verification step.
 
 **Shape:** For non-trivial goals, use [[conducty-shape]] to define appetite, scope, no-go zones, and design before planning. For architectural decisions, use [[conducty-dialectic]].
 
 **Plan:** Use [[conducty-plan]] to decompose goals into time-budgeted prompts with parallel groups, tracer markers, and calibrated review levels.
+
+**Plan Gate:** Use [[conducty-plan-audit]] before execution. A green gate proceeds to tracer execution; a yellow gate revises or requires explicit risk acceptance; a red gate stops and routes back to [[conducty-shape]] or [[conducty-plan]].
 
 **Trace + Execute:** Use [[conducty-execute]] to run prompts. The first prompt in each group is a tracer — if it fails, re-evaluate the plan before running the rest. Review rigor scales with risk: verify-only for low, spec review for medium, full two-stage for high.
 

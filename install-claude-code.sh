@@ -19,6 +19,7 @@ mkdir -p "$VAULT/Designs"
 mkdir -p "$VAULT/Improvements"
 mkdir -p "$VAULT/Code Reviews"
 mkdir -p "$VAULT/Ship Reports"
+mkdir -p "$VAULT/Kernel Contracts"
 mkdir -p "$VAULT/Context"
 
 # 1. Symlink skills
@@ -63,6 +64,7 @@ The Conducty cycle: Shape → Plan → Trace → Execute → Verify → Improve.
 - [[Context Index]]
 - [[Improvements Index]]
 - [[Ship Reports Index]]
+- [[Kernel Contracts Index]]
 
 ## Accumulating
 
@@ -111,6 +113,9 @@ seed_index "Improvements Index" "Improvements Index" \
 
 seed_index "Ship Reports Index" "Ship Reports Index" \
     "Pre-merge ship reports. Newest first."
+
+seed_index "Kernel Contracts Index" "Kernel Contracts Index" \
+    "Kernel state contracts. Newest first."
 
 # 3. Seed accumulating notes (under Accumulators/)
 seed_accumulating() {
